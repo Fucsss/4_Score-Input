@@ -12,7 +12,8 @@ class GetDanhSachLopHoc(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        MaGiangVien = request.data.get('MaGiangVien')
+        token = request.auth
+        MaGiangVien = token.user.MaGiangVien
         if MaGiangVien is None:
             return Response({'message': 'Please provide a valid MaGiangVien!'}, status=400)
 
