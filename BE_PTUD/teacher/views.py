@@ -35,6 +35,8 @@ class signupAPIView(APIView):
             user = Teacher.objects.create_user(MaGiangVien=MaGiangVien, password=password, HoVaTen=HoVaTen, TenKhoa=TenKhoa, Email=Email, SDT=SDT)
             token, created = Token.objects.get_or_create(user=user)
             return Response({'token': token.key, 'message': 'Signup successful'}, status=200)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
 class logoutAPIView(APIView):
     authentication_classes = [TokenAuthentication]
