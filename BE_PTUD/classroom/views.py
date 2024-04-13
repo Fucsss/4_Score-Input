@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from .models import Classroom
+from subject.models import Subject
+from teacher.models import Teacher
 import json
 
 # Create your views here.
@@ -39,5 +41,36 @@ class GetDanhSachLopHoc(APIView):
 class AddLopHoc(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
-    def get(request):
-        return Response({'message': 'Please use POST method to add a new class!'}, status=400)
+    def post(self, request):
+        token = request.auth
+        user = token.user
+        MaGiangVien = user.MaGiangVien
+        
+        if MaGiangVien is None:
+            return Response({'error': 'MaGiangVien is None'}, status=400)
+        
+        data = request.data
+        TenLopHoc = data.get('TenLopHoc')
+        TenPhongHoc = data.get('TenPhongHoc')
+        MaMonHoc = data.get('MaMonHoc')
+        NamHoc = data.get('NamHoc')
+        HocKy = data.get('HocKy')
+        
+        if None in [TenLopHoc, TenPhongHoc, MaMonHoc, NamHoc, HocKy]:
+            return Response({'error': 'One or more fields are None'}, status=400)
+        
+        if Subject.objects.filter(MaMonHoc=MaMonHoc).exists() == False:
+            return Response({'message': 'Subject does not exist'}, status=400)
+        
+        if Classroom.objects.filter(TenLopHoc=TenLopHoc, TenPhongHoc=TenPhongHoc, MaMonHoc=MaMonHoc, NamHoc=NamHoc, HocKy=HocKy).exists():
+            return Response({'message': 'Class already exists'}, status=400)
+        
+        try:
+            subject_instance = Subject.objects.get(MaMonHoc=MaMonHoc)
+            teacher_instance = Teacher.objects.get(MaGiangVien=MaGiangVien)
+            new_class = Classroom(MaGiangVien=teacher_instance, TenLopHoc=TenLopHoc, TenPhongHoc=TenPhongHoc, MaMonHoc=subject_instance, NamHoc=NamHoc, HocKy=HocKy)
+            new_class.save()
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+        
+        return Response({'message': 'Add class successful'}, status=200)
