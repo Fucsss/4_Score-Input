@@ -23,3 +23,25 @@ class GetDanhSachMonHoc(APIView):
         response_data = json.dumps({'classes': response}, ensure_ascii=False)
 
         return Response({'subjects': response_data}, status=200)
+    
+class AddMonHoc(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        data = request.data
+        MaMonHoc = data.get('MaMonHoc')
+        TenMonHoc = data.get('TenMonHoc')
+        SoTinChi = data.get('SoTinChi')
+
+        # Check if any field is None
+        if None in [MaMonHoc, TenMonHoc, SoTinChi]:
+            return Response({'error': 'One or more fields are None'}, status=400)
+
+        # Check if MaMonHoc already exists
+        if Subject.objects.filter(MaMonHoc=MaMonHoc).exists():
+            return Response({'error': 'MaMonHoc already exists'}, status=400)
+
+        # Create new Subject
+        Subject.objects.create(MaMonHoc=MaMonHoc, TenMonHoc=TenMonHoc, SoTinChi=SoTinChi)
+        return Response({'message': 'Add subject successful'}, status=200)
