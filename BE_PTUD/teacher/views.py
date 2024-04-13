@@ -40,7 +40,6 @@ class logoutAPIView(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     def post(self, request):
-        tokens = request.user.auth_token.all() 
-        for token in tokens: #Xoá hết token của các phiên đăng nhập
-            token.delete()
+        token = request.user.auth_token
+        token.delete()
         return Response({'message': 'Logout successful'}, status=200)
