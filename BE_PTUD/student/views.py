@@ -126,4 +126,49 @@ class RemoveSinhVien(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=500)
         
-# class EditSinhVien(APIView):
+class EditSinhVien(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        token = request.auth
+        user = token.user
+        MaGiangVien = user.MaGiangVien
+        
+        if MaGiangVien is None:
+            return Response({'error': 'MaGiangVien is None'}, status=400)
+        
+        data = request.data
+        MaSinhVien = data.get('MaSinhVien')
+        HoVaTen = data.get('HoVaTen')
+        Email = data.get('Email')
+        SDT = data.get('SDT')
+        TenKhoa = data.get('TenKhoa')
+        
+        if MaSinhVien is None:
+            return Response({'error': 'MaSinhVien is required'}, status=400)
+        
+        try:
+            # Lấy thông tin sinh viên từ database
+            student_instance = Student.objects.get(MaSinhVien=MaSinhVien)
+            
+            # Cập nhật thông tin nếu được cung cấp
+            if HoVaTen:
+                student_instance.HoVaTen = HoVaTen
+            if Email:
+                student_instance.Email = Email
+            if SDT:
+                student_instance.SDT = SDT
+            if TenKhoa:
+                student_instance.TenKhoa = TenKhoa
+            
+            # Lưu lại thông tin sinh viên sau khi chỉnh sửa
+            student_instance.save()
+            
+            return Response({'message': 'Student information updated successfully'}, status=200)
+        
+        except Student.DoesNotExist:
+            return Response({'error': 'Student does not exist'}, status=400)
+        
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
