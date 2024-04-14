@@ -81,6 +81,49 @@ class AddSinhVien(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=500)
 
-# class EditSinhVien(APIView):
+class RemoveSinhVien(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
-# class RemoveSinhVien(APIView):
+    def post(self, request):
+        token = request.auth
+        user = token.user
+        MaGiangVien = user.MaGiangVien
+        
+        if MaGiangVien is None:
+            return Response({'error': 'MaGiangVien is None'}, status=400)
+        
+        data = request.data
+        MaSinhVien = data.get('MaSinhVien')
+        
+        if MaSinhVien is None:
+            return Response({'error': 'MaSinhVien is required'}, status=400)
+        
+        try:
+            # Lấy instance của sinh viên
+            student_instance = Student.objects.get(MaSinhVien=MaSinhVien)
+        except Student.DoesNotExist:
+            return Response({'message': 'Student does not exist'}, status=400)
+        
+        try:
+            # Lấy instance của giảng viên
+            teacher_instance = Teacher.objects.get(MaGiangVien=MaGiangVien)
+        except Teacher.DoesNotExist:
+            return Response({'message': 'Teacher does not exist'}, status=400)
+        
+        try:
+            # Kiểm tra xem sinh viên có trong lớp học của giảng viên không
+            class_student_instance = Class_Student.objects.get(MaSinhVien=student_instance, MaGiangVien=teacher_instance)
+        except Class_Student.DoesNotExist:
+            return Response({'message': 'Student is not associated with this teacher'}, status=400)
+        
+        try:
+            # Xóa sinh viên khỏi lớp học của giảng viên
+            class_student_instance.delete()
+            
+            return Response({'message': 'Student removed from class successfully'}, status=200)
+        
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+        
+# class EditSinhVien(APIView):
