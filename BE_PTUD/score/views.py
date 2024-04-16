@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-from .models import score
+from .models import Score
 from student.models import Class_Student
 
 # Create your views here.
@@ -17,7 +17,7 @@ class GetDanhSachDiem(APIView):
         result = []
         for class_student in classes:
             MaSinhVien = class_student.MaSinhVien
-            scores = score.objects.filter(MaSinhVien=MaSinhVien, MaLopHoc=MaLopHoc)
+            scores = Score.objects.filter(MaSinhVien=MaSinhVien, MaLopHoc=MaLopHoc)
             score_list = []
             for score in scores:
                 score_list.append({
