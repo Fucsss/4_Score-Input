@@ -5,6 +5,7 @@ from rest_framework.authentication import TokenAuthentication
 from .models import Class_Student, Student
 from teacher.models import Teacher
 import json
+from django.db import transaction
 
 # Create your views here.
 class GetDanhSachSinhVien(APIView):
@@ -90,7 +91,11 @@ class RemoveSinhVien(APIView):
 
     def post(self, request):
         # Lấy user từ token xác thực
-        user = request.user
+        token = request.auth
+        if not token:
+            return Response({'error': 'Authorization token not provided'}, status=400)
+        
+        user = token.user
         MaGiangVien = user.MaGiangVien
         
         if not MaGiangVien:
@@ -106,23 +111,24 @@ class RemoveSinhVien(APIView):
             # Lấy instance của sinh viên
             student_instance = Student.objects.get(MaSinhVien=MaSinhVien)
         except Student.DoesNotExist:
-            return Response({'message': 'Student does not exist'}, status=400)
+            return Response({'error': 'Student does not exist'}, status=404)
         
         try:
             # Lấy instance của giảng viên
             teacher_instance = Teacher.objects.get(MaGiangVien=MaGiangVien)
         except Teacher.DoesNotExist:
-            return Response({'message': 'Teacher does not exist'}, status=400)
+            return Response({'error': 'Teacher does not exist'}, status=404)
         
         try:
             # Kiểm tra xem sinh viên có trong lớp học của giảng viên không
             class_student_instance = Class_Student.objects.get(MaSinhVien=student_instance, MaGiangVien=teacher_instance)
         except Class_Student.DoesNotExist:
-            return Response({'message': 'Student is not associated with this teacher'}, status=400)
+            return Response({'error': 'Student is not associated with this teacher'}, status=400)
         
         try:
-            # Xóa sinh viên khỏi lớp học của giảng viên
-            class_student_instance.delete()
+            # Thực hiện xóa sinh viên khỏi lớp học của giảng viên bằng cách xóa bản ghi Class_Student
+            with transaction.atomic():
+                class_student_instance.delete()
             
             return Response({'message': 'Student removed from class successfully'}, status=200)
         
