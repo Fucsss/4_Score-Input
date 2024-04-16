@@ -12,7 +12,10 @@ class GetDanhSachSinhVien(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        MaGiangVien = request.data.get('MaGiangVien')
+        token = request.auth
+        user = token.user
+        MaGiangVien = user.MaGiangVien
+        
         if MaGiangVien is None:
             return Response({'message': 'Please provide a valid MaGiangVien!'}, status=400)
 
@@ -86,17 +89,17 @@ class RemoveSinhVien(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        token = request.auth
-        user = token.user
+        # Lấy user từ token xác thực
+        user = request.user
         MaGiangVien = user.MaGiangVien
         
-        if MaGiangVien is None:
+        if not MaGiangVien:
             return Response({'error': 'MaGiangVien is None'}, status=400)
         
         data = request.data
         MaSinhVien = data.get('MaSinhVien')
         
-        if MaSinhVien is None:
+        if not MaSinhVien:
             return Response({'error': 'MaSinhVien is required'}, status=400)
         
         try:
