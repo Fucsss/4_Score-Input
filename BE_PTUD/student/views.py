@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from .models import Class_Student, Student
-from teacher.models import Teacher
+from classroom.models import Classroom
 import json
 from django.db import transaction
 
@@ -13,15 +13,13 @@ class GetDanhSachSinhVien(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        token = request.auth
-        user = token.user
-        MaGiangVien = user.MaGiangVien
+        MaLopHoc = request.data.get('MaLopHoc')
         
-        if MaGiangVien is None:
-            return Response({'message': 'Please provide a valid MaGiangVien!'}, status=400)
+        if MaLopHoc is None:
+            return Response({'message': 'Please provide a valid MaLopHoc!'}, status=400)
 
-        # Get list of classes
-        class_students = Class_Student.objects.filter(MaGiangVien=MaGiangVien)
+        # Get list of students associated with the specified classroom
+        class_students = Class_Student.objects.filter(MaLopHoc=MaLopHoc)
         responses = []
         for c in class_students:
             responses.append({
@@ -32,55 +30,46 @@ class GetDanhSachSinhVien(APIView):
                 'SDT': c.MaSinhVien.SDT
             })
         
-        # Convert responses to JSON string
-        response_data = json.dumps({'class_students': responses}, ensure_ascii=False)
+        # Return response data as JSON
+        return Response({'class_students': responses}, status=200)
 
-        return Response(response_data, status=200)
 
 class AddSinhVien(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        token = request.auth
-        user = token.user
-        MaGiangVien = user.MaGiangVien
+        MaLopHoc = request.data.get('MaLopHoc')
+        MaSinhVien = request.data.get('MaSinhVien')
         
-        if MaGiangVien is None:
-            return Response({'error': 'MaGiangVien is None'}, status=400)
+        if not MaLopHoc:
+            return Response({'error': 'MaLopHoc is required'}, status=400)
         
-        data = request.data
-        MaSinhVien = data.get('MaSinhVien')
-        HoVaTen = data.get('HoVaTen')
-        Email = data.get('Email')
-        SDT = data.get('SDT')
-        TenKhoa = data.get('TenKhoa')
-        
-        if MaSinhVien is None:
+        if not MaSinhVien:
             return Response({'error': 'MaSinhVien is required'}, status=400)
         
-        # Check if the specified student exists or create a new one
-        student_instance, created = Student.objects.get_or_create(
-            MaSinhVien=MaSinhVien,
-            defaults={'HoVaTen': HoVaTen, 'Email': Email, 'SDT': SDT, 'TenKhoa': TenKhoa}
-        )
-        
-        # Get the teacher instance using MaGiangVien
         try:
-            teacher_instance = Teacher.objects.get(MaGiangVien=MaGiangVien)
-        except Teacher.DoesNotExist:
-            return Response({'message': 'Teacher does not exist'}, status=400)
-        
-        # Check if the student is already associated with this teacher
-        if Class_Student.objects.filter(MaSinhVien=student_instance, MaGiangVien=teacher_instance).exists():
-            return Response({'message': 'Student already associated with this teacher'}, status=400)
-        
-        try:
-            # Create a new Class_Student instance to associate the student with the teacher
-            new_class_student = Class_Student(MaSinhVien=student_instance, MaGiangVien=teacher_instance)
-            new_class_student.save()
+            # Lấy thông tin sinh viên từ database hoặc tạo mới nếu chưa tồn tại
+            student_instance, created = Student.objects.get_or_create(MaSinhVien=MaSinhVien)
+            
+            # Lấy instance của lớp học
+            class_instance = Classroom.objects.get(MaLopHoc=MaLopHoc)
+            
+            # Kiểm tra nếu sinh viên đã tồn tại trong lớp học
+            if Class_Student.objects.filter(MaSinhVien=student_instance, MaLopHoc=class_instance).exists():
+                return Response({'message': 'Student already associated with this class'}, status=400)
+            
+            # Tạo một bản ghi Class_Student mới để liên kết sinh viên với lớp học
+            with transaction.atomic():
+                new_class_student = Class_Student.objects.create(MaSinhVien=student_instance, MaLopHoc=class_instance)
             
             return Response({'message': 'Student added successfully'}, status=200)
+        
+        except Student.DoesNotExist:
+            return Response({'error': 'Student does not exist'}, status=404)
+        
+        except Classroom.DoesNotExist:
+            return Response({'error': 'Classroom does not exist'}, status=404)
         
         except Exception as e:
             return Response({'error': str(e)}, status=500)
@@ -90,47 +79,24 @@ class RemoveSinhVien(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # Lấy user từ token xác thực
-        token = request.auth
-        if not token:
-            return Response({'error': 'Authorization token not provided'}, status=400)
-        
-        user = token.user
-        MaGiangVien = user.MaGiangVien
-        
-        if not MaGiangVien:
-            return Response({'error': 'MaGiangVien is None'}, status=400)
-        
-        data = request.data
-        MaSinhVien = data.get('MaSinhVien')
+        MaSinhVien = request.data.get('MaSinhVien')
         
         if not MaSinhVien:
             return Response({'error': 'MaSinhVien is required'}, status=400)
         
         try:
-            # Lấy instance của sinh viên
+            # Lấy thông tin sinh viên từ database
             student_instance = Student.objects.get(MaSinhVien=MaSinhVien)
+            
+            # Xóa sinh viên khỏi tất cả các lớp học
+            with transaction.atomic():
+                Class_Student.objects.filter(MaSinhVien=student_instance).delete()
+                student_instance.delete()
+            
+            return Response({'message': 'Student removed from all classes and deleted successfully'}, status=200)
+        
         except Student.DoesNotExist:
             return Response({'error': 'Student does not exist'}, status=404)
-        
-        try:
-            # Lấy instance của giảng viên
-            teacher_instance = Teacher.objects.get(MaGiangVien=MaGiangVien)
-        except Teacher.DoesNotExist:
-            return Response({'error': 'Teacher does not exist'}, status=404)
-        
-        try:
-            # Kiểm tra xem sinh viên có trong lớp học của giảng viên không
-            class_student_instance = Class_Student.objects.get(MaSinhVien=student_instance, MaGiangVien=teacher_instance)
-        except Class_Student.DoesNotExist:
-            return Response({'error': 'Student is not associated with this teacher'}, status=400)
-        
-        try:
-            # Thực hiện xóa sinh viên khỏi lớp học của giảng viên bằng cách xóa bản ghi Class_Student
-            with transaction.atomic():
-                class_student_instance.delete()
-            
-            return Response({'message': 'Student removed from class successfully'}, status=200)
         
         except Exception as e:
             return Response({'error': str(e)}, status=500)
@@ -140,44 +106,41 @@ class EditSinhVien(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        token = request.auth
-        user = token.user
-        MaGiangVien = user.MaGiangVien
-        
-        if MaGiangVien is None:
-            return Response({'error': 'MaGiangVien is None'}, status=400)
-        
         data = request.data
+        
+        # Lấy thông tin cần chỉnh sửa từ dữ liệu yêu cầu
         MaSinhVien = data.get('MaSinhVien')
         HoVaTen = data.get('HoVaTen')
         Email = data.get('Email')
         SDT = data.get('SDT')
         TenKhoa = data.get('TenKhoa')
         
-        if MaSinhVien is None:
+        if not MaSinhVien:
             return Response({'error': 'MaSinhVien is required'}, status=400)
         
         try:
-            # Lấy thông tin sinh viên từ database
+            # Lấy instance của sinh viên từ database
             student_instance = Student.objects.get(MaSinhVien=MaSinhVien)
             
-            # Cập nhật thông tin nếu được cung cấp
-            if HoVaTen:
-                student_instance.HoVaTen = HoVaTen
-            if Email:
-                student_instance.Email = Email
-            if SDT:
-                student_instance.SDT = SDT
-            if TenKhoa:
-                student_instance.TenKhoa = TenKhoa
-            
-            # Lưu lại thông tin sinh viên sau khi chỉnh sửa
-            student_instance.save()
+            # Bắt đầu một giao dịch để đảm bảo tính toàn vẹn dữ liệu
+            with transaction.atomic():
+                # Cập nhật thông tin nếu được cung cấp
+                if HoVaTen:
+                    student_instance.HoVaTen = HoVaTen
+                if Email:
+                    student_instance.Email = Email
+                if SDT:
+                    student_instance.SDT = SDT
+                if TenKhoa:
+                    student_instance.TenKhoa = TenKhoa
+                
+                # Lưu lại thông tin sinh viên sau khi chỉnh sửa
+                student_instance.save()
             
             return Response({'message': 'Student information updated successfully'}, status=200)
         
         except Student.DoesNotExist:
-            return Response({'error': 'Student does not exist'}, status=400)
+            return Response({'error': 'Student does not exist'}, status=404)
         
         except Exception as e:
             return Response({'error': str(e)}, status=500)

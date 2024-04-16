@@ -4,6 +4,7 @@ from .models import Teacher
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
+
 # Create your views here.
 class loginAPIView(APIView):
     def post(self, request):

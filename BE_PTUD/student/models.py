@@ -1,5 +1,5 @@
 from django.db import models
-from teacher.models import Teacher
+from classroom.models import Classroom
 
 # Create your models here.
 class Student(models.Model):
@@ -12,4 +12,4 @@ class Student(models.Model):
 
 class Class_Student(models.Model):
     MaSinhVien = models.ForeignKey(Student, on_delete=models.CASCADE)
-    MaGiangVien = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    MaLopHoc = models.ForeignKey(Classroom, on_delete=models.CASCADE, null=True)
