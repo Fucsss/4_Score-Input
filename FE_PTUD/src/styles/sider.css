@@ -1,0 +1,7 @@
+.leftSiderIcon:hover {
+  background-color: #0572c5;
+  cursor: pointer;
+}
+.hoverLightGray:hover {
+  background-color: rgb(184, 179, 179);
+}

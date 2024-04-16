@@ -20,9 +20,9 @@ class GetDanhSachMonHoc(APIView):
             }
             response.append(subject)
         # Convert responses to JSON string
-        response_data = json.dumps({'classes': response}, ensure_ascii=False)
+        response_data = json.dumps({'subjects': response}, ensure_ascii=False)
 
-        return Response({'subjects': response_data}, status=200)
+        return Response(response_data, status=200)
     
 class AddMonHoc(APIView):
     authentication_classes = [TokenAuthentication]
