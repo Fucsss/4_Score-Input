@@ -24,15 +24,12 @@ class GetDanhSachDiem(APIView):
         for class_student in classes:
             MaSinhVien = class_student.MaSinhVien.MaSinhVien
             scores = Score.objects.filter(MaSinhVien=MaSinhVien, MaLopHoc=MaLopHoc)
-            score_list = []
+            score_dict = {}
             for score in scores:
-                score_list.append({
-                    'TenThanhPhanDiem': score.TenThanhPhanDiem,
-                    'Diem': score.Diem
-                })
+                score_dict[score.TenThanhPhanDiem] = score.Diem
             result.append({
                 'MaSinhVien': MaSinhVien,
-                'Scores': score_list if score_list else None
+                'Scores': score_dict if score_dict else None
             })
         print(result)
         return Response(result)
