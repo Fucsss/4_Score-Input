@@ -16,7 +16,7 @@ class GetDanhSachDiem(APIView):
         classes = Class_Student.objects.filter(MaLopHoc=MaLopHoc)
         result = []
         for class_student in classes:
-            MaSinhVien = class_student.MaSinhVien
+            MaSinhVien = class_student.MaSinhVien.MaSinhVien
             scores = Score.objects.filter(MaSinhVien=MaSinhVien, MaLopHoc=MaLopHoc)
             score_list = []
             for score in scores:
@@ -28,4 +28,6 @@ class GetDanhSachDiem(APIView):
                 'MaSinhVien': MaSinhVien,
                 'Scores': score_list if score_list else None
             })
+        print(result)
+        input()
         return Response(result)
