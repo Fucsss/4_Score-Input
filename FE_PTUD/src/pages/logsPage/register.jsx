@@ -4,6 +4,7 @@ import { RiEyeCloseLine, RiEyeLine } from "react-icons/ri";
 function Register() {
   const [formData, setFormData] = useState({
     name: "",
+    teacherID: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -28,11 +29,14 @@ function Register() {
   const handleFormSubmit = (event) => {
     event.preventDefault();
 
-    const { name, email, password, confirmPassword } = formData;
+    const { name, teacherID, email, password, confirmPassword } = formData;
 
     const errors = {};
     if (!name) {
       errors.name = "Please enter your name.";
+    }
+    if (!teacherID) {
+      errors.teacherID = "Please enter your Teacher ID.";
     }
     if (!email) {
       errors.email = "Please enter your email address.";
@@ -68,6 +72,15 @@ function Register() {
         />
         {errors.name && <p className="error-message">{errors.name}</p>}
         <input
+          type="text"
+          placeholder="Teacher ID"
+          name="teacherID"
+          value={formData.teacherID}
+          onChange={handleChange}
+          className={errors.teacherID ? "error" : ""}
+        />
+        {errors.teacherID && <p className="error-message">{errors.teacherID}</p>}
+        <input
           type="email"
           placeholder="Email"
           name="email"
@@ -83,7 +96,7 @@ function Register() {
             name="password"
             value={formData.password}
             onChange={handleChange}
-            className={errors.email ? "error" : ""}
+            className={errors.password ? "error" : ""}
           />
           <span
             style={{
