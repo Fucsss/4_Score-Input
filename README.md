@@ -1,30 +1,34 @@
-# Hệ thống nhập điểm trực tuyến cho giảng viên
+# Tên ứng dụng
 
-## Mô tả
+- Mô tả vắn tắt tên ứng dụng ở đây (Gợi ý: ứng dụng giải quyết vấn đề gì, có các đối tượng người dùng như thế nào, có các chức năng gì...)
 
-Dự án này là một hệ thống nhập điểm trực tuyến được thiết kế để giúp giảng viên quản lý và nhập điểm cho các sinh viên một cách hiệu quả và tiện lợi. Hệ thống cung cấp giao diện người dùng thân thiện và linh hoạt để giảng viên có thể thực hiện các hoạt động quản lý điểm một cách dễ dàng.
+- Bạn có thể trải nghiệm ứng dụng ở đây [LINK](https://update-this-link)
+- Một số sceenshot của ứng dụng
 
-## Tính năng
+## CÀI ĐẶT
 
-- **Quản lý sinh viên:** Cho phép thêm, sửa đổi và xóa thông tin sinh viên từ cơ sở dữ liệu.
-  
-- **Quản lý môn học:** Hỗ trợ tạo mới, chỉnh sửa và xóa các môn học cùng các thông tin liên quan như tên môn, mã môn và giảng viên phụ trách.
+Hướng dẫn cài đặt và chạy sau khi pull project từ github về (Lưu ý: hướng dẫn phải chạy được). Bao gồm:
+- Các phần mềm cần cài đặt
+- Các gói thư viện python cần dùng (có thể sử dụng pip freeze để tạo)
+- Script tạo database (Để script trong thư mục installation)
+- Script tạo dữ liệu (Để script trong thư mục installation)
 
-- **Nhập điểm:** Cung cấp giao diện nhập điểm dễ sử dụng, cho phép giảng viên nhập và cập nhật điểm cho sinh viên một cách nhanh chóng.
+## THÔNG TIN THÀNH VIÊN
 
-- **Xem báo cáo:** Hiển thị các báo cáo tổng hợp về điểm số của sinh viên, giúp giảng viên đánh giá và theo dõi tiến độ học tập của từng sinh viên.
+- Họ tên sv 1 - msv
+- Họ tên sv 2 - msv
+- Họ tên sv 3 - msv
+- Họ tên sv 4 - msv
 
-## Công nghệ sử dụng
+## TRÁCH NHIỆM
 
-- **Ngôn ngữ lập trình:** python, javascript. 
-  
-- **Cơ sở dữ liệu:** sqlite3.
+- Thành viên 1:
+    - trách nhiệm 1
+    - trách nhiệm 2
+- Thành viên 2
+    - trách nhiệm 1
+    - trách nhiệm 2
+- ...
 
-- **Framework và thư viện:** django cho Backend và React.js cho Frontend.
 
-## Tác giả
-
-- Võ Hoàng Phúc - MSSV: 21094311
-- Tăng Quang Nhật Nam - MSSV: 21082941
-- Trương Thành Thảo - MSSV: 21002721
-- Lê Nguyên Sinh - MSSV: 20124551
+---

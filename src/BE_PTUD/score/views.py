@@ -26,7 +26,10 @@ class GetDanhSachDiem(APIView):
             scores = Score.objects.filter(MaSinhVien=MaSinhVien, MaLopHoc=MaLopHoc)
             score_dict = {}
             for score in scores:
-                score_dict[score.TenThanhPhanDiem] = score.Diem
+                if score.Diem is not None:  # Kiểm tra nếu score.Diem không rỗng
+                    score_dict[score.TenThanhPhanDiem] = score.Diem
+                else:  # Nếu score.Diem rỗng, đặt một giá trị mặc định
+                    score_dict[score.TenThanhPhanDiem] = None
             result.append({
                 'MaSinhVien': MaSinhVien,
                 'Scores': score_dict if score_dict else None
