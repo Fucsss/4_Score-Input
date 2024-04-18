@@ -1,6 +1,6 @@
-# Tên ứng dụng
+# Ứng dụng hỗ trợ giảng viên nhập điểm (Score-Input)
 
-- Mô tả vắn tắt tên ứng dụng ở đây (Gợi ý: ứng dụng giải quyết vấn đề gì, có các đối tượng người dùng như thế nào, có các chức năng gì...)
+- Dự án này là một hệ thống nhập điểm trực tuyến được thiết kế để giúp giảng viên quản lý và nhập điểm cho các sinh viên một cách hiệu quả và tiện lợi. Hệ thống cung cấp giao diện người dùng thân thiện và linh hoạt để giảng viên có thể thực hiện các hoạt động quản lý điểm một cách dễ dàng.
 
 - Bạn có thể trải nghiệm ứng dụng ở đây [LINK](https://update-this-link)
 - Một số sceenshot của ứng dụng
@@ -15,10 +15,10 @@ Hướng dẫn cài đặt và chạy sau khi pull project từ github về (Lư
 
 ## THÔNG TIN THÀNH VIÊN
 
-- Họ tên sv 1 - msv
-- Họ tên sv 2 - msv
-- Họ tên sv 3 - msv
-- Họ tên sv 4 - msv
+- Võ Hoàng Phúc - MSSV: 21094311
+- Tăng Quang Nhật Nam - MSSV: 21082941
+- Trương Thành Thảo - MSSV: 21002721
+- Lê Nguyên Sinh - MSSV: 20124551
 
 ## TRÁCH NHIỆM
 
