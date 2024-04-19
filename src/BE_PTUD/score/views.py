@@ -6,6 +6,8 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Score
 from student.models import Class_Student
 from classroom.models import Classroom
+import pandas as pd
+import io
 
 # Create your views here.
 class GetDanhSachDiem(APIView):
@@ -36,7 +38,6 @@ class GetDanhSachDiem(APIView):
                 'MaSinhVien': MaSinhVien,
                 'Scores': score_dict if score_dict else None
             })
-        print(result)
         return Response({
             'score_columns': list(score_columns),  # Convert set to list
             'student_scores': result
@@ -97,3 +98,32 @@ class UpdateDiem(APIView):
             Score.objects.filter(MaSinhVien=MaSinhVien, MaLopHoc=MaLopHoc, TenThanhPhanDiem=TenThanhPhanDiem).update(Diem=Diem)
         
         return Response({'message': 'Update scores successfully!'}, status=200)
+
+class AddDiemByFile(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    def post(self, request):
+        token = request.auth
+        MaGiangVien = token.user.MaGiangVien
+        MaLopHoc = request.data.get('MaLopHoc')
+        if Classroom.objects.get(MaLopHoc=MaLopHoc).MaGiangVien.MaGiangVien != MaGiangVien:
+            return Response({'message': 'You do not have permission to add score for this class!'}, status=403)
+        
+        file = request.FILES['file']
+
+        # Read the file content into a StringIO object
+        file_content = file.read().decode('utf-8')
+        csv_file = io.StringIO(file_content)
+
+        # Read the CSV file
+        df = pd.read_csv(csv_file)
+        for row in df.to_dict("records"):
+            MaSinhVien = None
+            for key, value in row.items():
+                if key == 'MaSinhVien':
+                    MaSinhVien = value
+                else:
+                    TenThanhPhanDiem = key
+                    Diem = value
+                    print(MaSinhVien, TenThanhPhanDiem, Diem)
+        return Response({'message': 'Add scores successfully!'}, status=200)
