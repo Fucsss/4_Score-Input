@@ -2,6 +2,15 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
 # Create your models here.
+def generate_teacher_code():
+    # Get the highest current code
+    max_code = Teacher.objects.all().aggregate(models.Max('MaGiangVien'))['MaGiangVien__max']
+    if max_code is None:
+        new_code = "GV00001"
+    else:
+        num = int(max_code[2:]) + 1  # Extract the number part of the code and increment it
+        new_code = "GV" + str(num).zfill(5)  # Create the new code
+    return new_code
 
 class TeacherManager(BaseUserManager):
     def create_user(self, MaGiangVien, password=None, **extra_fields):
@@ -18,7 +27,7 @@ class TeacherManager(BaseUserManager):
         return self.create_user(MaGiangVien, password, **extra_fields)
 
 class Teacher(AbstractBaseUser, PermissionsMixin):
-    MaGiangVien = models.CharField(max_length=255, primary_key=True)
+    MaGiangVien = models.CharField(max_length=10, primary_key=True, default=generate_teacher_code)
     HoVaTen = models.CharField(max_length=255)
     TenKhoa = models.CharField(max_length=255)
     Email = models.EmailField(max_length=255)
