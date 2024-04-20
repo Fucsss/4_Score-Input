@@ -6,8 +6,10 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Score
 from student.models import Class_Student
 from classroom.models import Classroom
+from student.models import Student
 import pandas as pd
 import io
+import csv
 
 # Create your views here.
 class GetDanhSachDiem(APIView):
@@ -102,28 +104,58 @@ class UpdateDiem(APIView):
 class AddDiemByFile(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+
     def post(self, request):
         token = request.auth
         MaGiangVien = token.user.MaGiangVien
         MaLopHoc = request.data.get('MaLopHoc')
-        if Classroom.objects.get(MaLopHoc=MaLopHoc).MaGiangVien.MaGiangVien != MaGiangVien:
-            return Response({'message': 'You do not have permission to add score for this class!'}, status=403)
-        
-        file = request.FILES['file']
 
-        # Read the file content into a StringIO object
+        if MaLopHoc is None:
+            return Response({'message': 'MaLopHoc is required!'}, status=400)
+
+        try:
+            classroom = Classroom.objects.get(MaLopHoc=MaLopHoc)
+            if classroom.MaGiangVien.MaGiangVien != MaGiangVien:
+                return Response({'message': 'You do not have permission to add score for this class!'}, status=403)
+        except Classroom.DoesNotExist:
+            return Response({'message': 'MaLopHoc is not exist!'}, status=400)
+
+        file = request.FILES['file']
         file_content = file.read().decode('utf-8')
         csv_file = io.StringIO(file_content)
 
-        # Read the CSV file
-        df = pd.read_csv(csv_file)
+        try:
+            df = pd.read_csv(csv_file)
+        except pd.errors.ParserError:
+            return Response({'message': 'Invalid CSV file!'}, status=400)
+
+        if 'MaSinhVien' not in df.columns:
+            return Response({'message': 'Invalid CSV file, missing MaSinhVien column'}, status=400)
+
+        students = Class_Student.objects.filter(MaLopHoc=MaLopHoc) #Find students by MaLopHoc
         for row in df.to_dict("records"):
-            MaSinhVien = None
-            for key, value in row.items():
-                if key == 'MaSinhVien':
-                    MaSinhVien = value
-                else:
-                    TenThanhPhanDiem = key
-                    Diem = value
-                    print(MaSinhVien, TenThanhPhanDiem, Diem)
+            MaSinhVien = row.get('MaSinhVien')
+            if MaSinhVien is None:
+                continue
+
+            try: 
+                class_student = students.get(MaSinhVien=MaSinhVien)
+            except Class_Student.DoesNotExist:
+                return Response({'message': f'Student with ID {MaSinhVien} does not exist in this class!'}, status=400)
+
+            student = class_student.MaSinhVien  # Access the Student from the Class_Student
+
+            for TenThanhPhanDiem, Diem in row.items():
+                if TenThanhPhanDiem == 'MaSinhVien':
+                    continue
+
+                try:
+                    score = Score.objects.get(MaSinhVien=student, 
+                                            MaLopHoc=classroom, 
+                                            TenThanhPhanDiem=TenThanhPhanDiem)
+                except Score.DoesNotExist:
+                    score = Score.objects.create(MaSinhVien=student, MaLopHoc=classroom, TenThanhPhanDiem=TenThanhPhanDiem, Diem=Diem)
+                except Exception as e:
+                    return Response({'message': f'Error: {e}'}, status=400)
+            
         return Response({'message': 'Add scores successfully!'}, status=200)
