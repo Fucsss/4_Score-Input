@@ -9,7 +9,7 @@ from classroom.models import Classroom
 from student.models import Student
 import pandas as pd
 import io
-import csv
+from sympy import sympify
 
 # Create your views here.
 class GetDanhSachDiem(APIView):
@@ -159,3 +159,39 @@ class AddDiemByFile(APIView):
                     return Response({'message': f'Error: {e}'}, status=400)
             
         return Response({'message': 'Add scores successfully!'}, status=200)
+    
+class CreateNewColumnByFormula(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        token = request.auth
+        MaGiangVien = token.user.MaGiangVien
+        MaLopHoc = request.data.get('MaLopHoc')
+        try:
+            classroom = Classroom.objects.get(MaLopHoc=MaLopHoc)
+            if classroom.MaGiangVien.MaGiangVien != MaGiangVien:
+                return Response({'message': 'You do not have permission to create new column for this class!'}, status=403)
+        except Classroom.DoesNotExist:
+            return Response({'message': 'MaLopHoc is not exist!'}, status=400)
+        NewColumnName = request.data.get('NewColumnName')
+        formula = request.data.get('formula')
+        expr = sympify(formula)
+        variables = expr.free_symbols
+        #Extract all student score by MaLopHoc
+        students = Score.objects.filter(MaLopHoc=MaLopHoc)
+        df = pd.DataFrame.from_records(students.values())
+        for MaSinhVien in df['MaSinhVien_id'].unique():
+            # print(MaSinhVien)
+            FindSCoresByMaSinhVien = df[df['MaSinhVien_id'] == MaSinhVien]
+            scores = {'MaSinhVien': MaSinhVien}
+            # Find all column need to calculate
+            for var in variables:
+                if str(var) not in FindSCoresByMaSinhVien["TenThanhPhanDiem"].values:
+                    scores[var] = None
+                    # return Response({'message': f'{MaSinhVien} Column {str(var)} not exist!'}, status=400)
+                scores[var] = FindSCoresByMaSinhVien[FindSCoresByMaSinhVien["TenThanhPhanDiem"] == str(var)]["Diem"].values[0]
+            scores[NewColumnName] = expr.subs(scores)
+            Score.objects.create(MaSinhVien=Student.objects.get(MaSinhVien=MaSinhVien), MaLopHoc=classroom, TenThanhPhanDiem=NewColumnName, Diem=scores[NewColumnName])
+
+        return Response({'message': 'Create new column by formula successfully!'}, status=200)
