@@ -243,7 +243,7 @@ const StudentList = () => {
         dataSource={dataSource}
         columns={columns}
         style={{ marginRight: "250px", marginLeft: "20px" }}
-        scroll={{ y: 920 }}
+        scroll={{y: 600 }}
         pagination={false}
       />
     </div>
