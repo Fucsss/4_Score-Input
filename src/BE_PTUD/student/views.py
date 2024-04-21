@@ -6,6 +6,8 @@ from .models import Class_Student, Student
 from classroom.models import Classroom
 import json
 from django.db import transaction
+import pandas as pd 
+import io
 
 # Create your views here.
 class GetDanhSachSinhVien(APIView):
@@ -33,7 +35,6 @@ class GetDanhSachSinhVien(APIView):
         # Return response data as JSON
         return Response({'class_students': responses}, status=200)
 
-
 class AddSinhVien(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
@@ -41,6 +42,10 @@ class AddSinhVien(APIView):
     def post(self, request):
         MaLopHoc = request.data.get('MaLopHoc')
         MaSinhVien = request.data.get('MaSinhVien')
+        HoVaTen = request.data.get('HoVaTen')
+        Email = request.data.get('Email')
+        SDT = request.data.get('SDT')
+        TenKhoa = request.data.get('TenKhoa')
         
         if not MaLopHoc:
             return Response({'error': 'MaLopHoc is required'}, status=400)
@@ -50,7 +55,12 @@ class AddSinhVien(APIView):
         
         try:
             # Lấy thông tin sinh viên từ database hoặc tạo mới nếu chưa tồn tại
-            student_instance, created = Student.objects.get_or_create(MaSinhVien=MaSinhVien)
+            student_instance, created = Student.objects.get_or_create(MaSinhVien=MaSinhVien, defaults={
+                'HoVaTen': HoVaTen,
+                'Email': Email,
+                'SDT': SDT,
+                'TenKhoa': TenKhoa
+            })
             
             # Lấy instance của lớp học
             class_instance = Classroom.objects.get(MaLopHoc=MaLopHoc)
@@ -101,7 +111,7 @@ class RemoveSinhVien(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=500)
         
-class EditSinhVien(APIView):
+class UpdateSinhVien(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -144,3 +154,58 @@ class EditSinhVien(APIView):
         
         except Exception as e:
             return Response({'error': str(e)}, status=500)
+
+class AddSinhVienByFile(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        token = request.auth
+        MaGiangVien = token.user.MaGiangVien
+        MaLopHoc = request.data.get('MaLopHoc')
+
+        if MaLopHoc is None:
+            return Response({'message': 'MaLopHoc is required!'}, status=400)
+
+        try:
+            classroom = Classroom.objects.get(MaLopHoc=MaLopHoc)
+            if classroom.MaGiangVien.MaGiangVien != MaGiangVien:
+                return Response({'message': 'You do not have permission to add students to this class!'}, status=403)
+        except Classroom.DoesNotExist:
+            return Response({'message': 'MaLopHoc does not exist!'}, status=400)
+
+        file = request.FILES['file']
+
+        if not file.name.endswith('.csv'):
+            return Response({'message': 'Invalid file format! Only CSV files are supported.'}, status=400)
+
+        try:
+            df = pd.read_csv(file)
+
+            # Iterate over each row in the CSV file
+            for index, row in df.iterrows():
+                MaSinhVien = row.get('MaSinhVien')
+                HoVaTen = row.get('HoVaTen')
+                Email = row.get('Email')
+                SDT = row.get('SDT')
+                TenKhoa = row.get('TenKhoa')
+
+                if MaSinhVien is None or HoVaTen is None:
+                    return Response({'message': 'MaSinhVien and HoVaTen are required fields.'}, status=400)
+
+                # Create or update the Student object
+                student_instance, created = Student.objects.update_or_create(
+                    MaSinhVien=MaSinhVien,
+                    defaults={'HoVaTen': HoVaTen, 'Email': Email, 'SDT': SDT, 'TenKhoa': TenKhoa}
+                )
+
+                # Check if the student is already associated with the classroom
+                if not Class_Student.objects.filter(MaSinhVien=student_instance, MaLopHoc=classroom).exists():
+                    Class_Student.objects.create(MaSinhVien=student_instance, MaLopHoc=classroom)
+
+            return Response({'message': 'Students added successfully!'}, status=200)
+
+        except pd.errors.ParserError:
+            return Response({'message': 'Invalid CSV file format!'}, status=400)
+        except Exception as e:
+            return Response({'message': str(e)}, status=500)
