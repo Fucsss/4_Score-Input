@@ -1,5 +1,6 @@
 import React from "react";
 import { Card, Typography } from "antd";
+import { useNavigate } from "react-router-dom";
 import Faker from "../../data/index.jsx";
 
 const linkStyle = {
@@ -9,6 +10,13 @@ const linkStyle = {
 };
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+
+  const handleTitleClick = (classId) => {
+    navigate(`/class/${classId}`);
+  };
+
+
   return (
     <div
       style={{
@@ -27,7 +35,12 @@ const Dashboard = () => {
             key={classItem.IDClass}
             title={
               <a href="#" style={linkStyle}>
-                {classItem.nameClass}
+                <div style={{ color: "#1890ff", cursor: "pointer" }}
+                  onClick={() => handleTitleClick('')}
+                >
+                  {classItem.nameClass}
+                </div>
+
               </a>
             }
             style={{
