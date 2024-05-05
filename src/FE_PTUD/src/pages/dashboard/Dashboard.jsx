@@ -9,6 +9,7 @@ const linkStyle = {
 };
 
 const Dashboard = () => {
+  console.log(localStorage.getItem('token'));
   return (
     <div
       style={{
@@ -22,9 +23,9 @@ const Dashboard = () => {
       <div
         style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}
       >
-        {Faker.ClassFaker.map((classItem) => (
+        {Faker.ClassFaker.map((classItem, index) => (
           <Card
-            key={classItem.IDClass}
+          key={classItem.IDClass + index}
             title={
               <a href="#" style={linkStyle}>
                 {classItem.nameClass}
@@ -38,8 +39,8 @@ const Dashboard = () => {
             }}
           >
             <ul style={{ listStyleType: "none", padding: 0 }}>
-              <li>IDClass: {classItem.IDClass}</li>
-              <li>Student: {classItem.Student}</li>
+              <li key={classItem.id + 'IDClass'}>IDClass: {classItem.IDClass}</li>
+              <li key={classItem.id + 'Student'}>Student: {classItem.Student}</li>
             </ul>
           </Card>
         ))}

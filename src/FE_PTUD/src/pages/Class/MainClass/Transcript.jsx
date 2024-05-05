@@ -1,79 +1,5 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
-import { Button, Form, Input, Popconfirm, Table } from "antd";
-
-const EditableContext = React.createContext(null);
-
-const EditableRow = ({ index, ...props }) => {
-  const [form] = Form.useForm();
-  return (
-    <Form form={form} component={false}>
-      <EditableContext.Provider value={form}>
-        <tr {...props} />
-      </EditableContext.Provider>
-    </Form>
-  );
-};
-
-const EditableCell = ({
-  title,
-  editable,
-  children,
-  dataIndex,
-  record,
-  handleSave,
-  ...restProps
-}) => {
-  const [editing, setEditing] = useState(false);
-  const inputRef = useRef(null);
-  const form = useContext(EditableContext);
-
-  useEffect(() => {
-    if (editing) {
-      inputRef.current.focus();
-    }
-  }, [editing]);
-
-  const toggleEdit = () => {
-    setEditing(!editing);
-    form.setFieldsValue({
-      [dataIndex]: record[dataIndex],
-    });
-  };
-
-  const save = async () => {
-    try {
-      const values = await form.validateFields();
-      toggleEdit();
-      handleSave({ ...record, ...values });
-    } catch (errInfo) {
-      console.log("Save failed:", errInfo);
-    }
-  };
-
-  let childNode = children;
-
-  if (editable) {
-    childNode = editing ? (
-      <Form.Item
-        style={{ margin: 0 }}
-        name={dataIndex}
-        rules={[{ required: true, message: `${title} is required.` }]}
-      >
-        <Input ref={inputRef} onPressEnter={save} onBlur={save} />
-      </Form.Item>
-    ) : (
-      <div
-        className="editable-cell-value-wrap"
-        style={{ paddingRight: 24 }}
-        onClick={toggleEdit}
-      >
-        {children}
-      </div>
-    );
-  }
-
-  return <td {...restProps}>{childNode}</td>;
-};
+import React, { useState } from "react";
+import { Button, Input, Popconfirm, Table } from "antd";
 
 const Transcript = () => {
   const [dataSource, setDataSource] = useState([
@@ -94,41 +20,60 @@ const Transcript = () => {
       Email: "NguyenVanA2@gmail.com",
     },
   ]);
-  const [count, setCount] = useState(2);
-  const [editingKey, setEditingKey] = useState("");
+
   const [columns, setColumns] = useState([
     {
       title: "STT",
       dataIndex: "STT",
       width: "4%",
-      align: "center",
-      editable: true,
+      render: (_, record) => {
+        const editable = isEditing(record);
+        return editable ? (
+          <EditableCell
+            value={record.STT}
+            dataIndex="STT"
+            record={record}
+            handleSave={handleSave}
+            editing={editable}
+          />
+        ) : (
+          <div>{record.STT}</div>
+        );
+      },
     },
     {
       title: "MSSV",
       dataIndex: "MSSV",
       width: "6%",
-      editable: true,
+      render: (_, record) => renderCell(record, "MSSV"),
     },
     {
       title: "NameStudent",
       dataIndex: "NameStudent",
-      width: "10%",
-      editable: true,
+      width: "20%",
+      render: (_, record) => renderCell(record, "NameStudent"),
     },
     {
       title: "ClassSTD",
       dataIndex: "ClassSTD",
-      width: "10%",
-      editable: true,
+      width: "20%",
+      render: (_, record) => renderCell(record, "ClassSTD"),
     },
     {
       title: "Email",
       dataIndex: "Email",
-      width: "15%",
-      editable: true,
+      width: "30%",
+      render: (_, record) => renderCell(record, "Email"),
+    },
+    {
+      title: "Operation",
+      dataIndex: "operation",
+      width: "20%",
+      render: (_, record) => renderOperation(record),
     },
   ]);
+
+  const [editingKey, setEditingKey] = useState("");
 
   const isEditing = (record) => record.key === editingKey;
 
@@ -143,144 +88,139 @@ const Transcript = () => {
   const handleDelete = (key) => {
     const newData = dataSource.filter((item) => item.key !== key);
     setDataSource(newData);
+    setEditingKey(""); // Kết thúc chỉnh sửa sau khi xóa
   };
 
-  const handleAdd = () => {
-    const newData = {
-      key: count.toString(),
-      STT: (count + 1).toString(),
-      MSSV: `2012455${count}`,
-      NameStudent: `Nguyen Van A${count}`,
-      ClassSTD: `DHKHDL1${count}A `,
-      Email: `NguyenVan${count}@gmail.com`,
-    };
-
-    columns.forEach((column, index) => {
-      if (index >= 5) { // Start populating from the 6th column (index 5)
-        newData[column.dataIndex] = `Data ${count}`;
-      }
-    });
-
-    setDataSource([...dataSource, newData]);
-    setCount(count + 1);
-  };
-
-  const handleSave = (row) => {
+  const handleSave = (key, dataIndex, inputValue) => {
     const newData = [...dataSource];
-    const index = newData.findIndex((item) => row.key === item.key);
-
+    const index = newData.findIndex((item) => key === item.key);
+  
     if (index > -1) {
-      const item = newData[index];
-      newData.splice(index, 1, { ...item, ...row });
-
-      columns.forEach((column, idx) => {
-        if (idx >= 5) { // Start updating from the 6th column (index 5)
-          newData[index][column.dataIndex] = row[column.dataIndex];
-        }
-      });
-
+      newData[index][dataIndex] = inputValue;
       setDataSource(newData);
-      setEditingKey("");
-    } else {
-      newData.push(row);
-      setDataSource(newData);
-      setEditingKey("");
+      setEditingKey(""); // Kết thúc chỉnh sửa sau khi lưu
     }
   };
 
   const handleAddColumn = () => {
+    const newColumnName = `NewColumn${columns.length}`;
     const newColumn = {
-      title: `Column ${columns.length + 1}`,
-      dataIndex: `column${columns.length + 1}`,
-      width: "10%",
-      editable: true,
+      title: newColumnName,
+      dataIndex: newColumnName,
+      width: "20%",
+      render: (_, record) => renderCell(record, newColumnName),
     };
-    const updatedColumns = [...columns.filter(col => col.title !== "Operation"), newColumn, {
-      title: "Operation",
-      dataIndex: "operation",
-      width: "15%",
-      render: (_, record) => {
-        const editable = isEditing(record);
 
-        return editable ? (
-          <span>
-            <a onClick={() => save(record)}>Save</a>
-            <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
-              <a style={{ marginLeft: 8 }}>Cancel</a>
-            </Popconfirm>
-          </span>
-        ) : (
-          <span>
-            <a onClick={() => edit(record.key)}>Edit</a> |{" "}
-            <Popconfirm
-              title="Sure to delete?"
-              onConfirm={() => handleDelete(record.key)}
-            >
-              <a>Delete</a>
-            </Popconfirm>
-          </span>
-        );
-      },
-    }];
-    setColumns(updatedColumns);
+    const newDataSource = dataSource.map((item) => {
+      return {
+        ...item,
+        [newColumnName]: `NewValue${item.key}`,
+      };
+    });
+
+    setDataSource(newDataSource);
+    setColumns([...columns, newColumn]);
   };
 
-  const components = {
-    body: {
-      row: EditableRow,
-      cell: EditableCell,
-    },
+  const renderCell = (record, dataIndex) => {
+    const editable = isEditing(record);
+    return editable ? (
+      <EditableCell
+        value={record[dataIndex]}
+        dataIndex={dataIndex}
+        record={record}
+        handleSave={handleSave}
+      />
+    ) : (
+      <div>{record[dataIndex]}</div>
+    );
   };
 
-  const mergedColumns = columns.map((col) => {
-    if (!col.editable) {
-      return col;
-    }
+  const renderOperation = (record) => {
+    const editable = isEditing(record);
+  
+    return editable ? (
+      <span>
+        {columns.map(({ dataIndex }) => (
+          <Button
+            type="primary"
+            onClick={() => handleSave(record.key, dataIndex, record[dataIndex])}
+            style={{ marginRight: 8 }}
+          >
+            Save
+          </Button>
+        ))}
+        <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
+          <Button>Cancel</Button>
+        </Popconfirm>
+      </span>
+    ) : (
+      <span>
+        <Button onClick={() => edit(record.key)} style={{ marginRight: 8 }}>
+          Edit
+        </Button>
+        <Popconfirm
+          title="Sure to delete?"
+          onConfirm={() => handleDelete(record.key)}
+        >
+          <Button>Delete</Button>
+        </Popconfirm>
+      </span>
+    );
+  };
 
-    return {
-      ...col,
-      onCell: (record) => ({
-        record,
-        editable: col.editable,
-        dataIndex: col.dataIndex,
-        title: col.title,
-        handleSave: handleSave,
-      }),
+  const EditableCell = ({ value, dataIndex, record, handleSave }) => {
+    const [inputValue, setInputValue] = useState(value);
+
+    const handleChange = (e) => {
+      setInputValue(e.target.value);
     };
-  });
+
+    const save = () => {
+      handleSave(record.key, dataIndex, inputValue);
+    };
+
+    return (
+      <Input
+        value={inputValue}
+        onChange={handleChange}
+        onPressEnter={save}
+        onBlur={save}
+      />
+    );
+  };
 
   return (
     <div>
-      <h1 style={{ textAlign: "center" }}>Transcript</h1>
+      <h1 style={{ textAlign: "center" }}>Student List</h1>
       <Button
-        onClick={handleAdd}
-        type="primary"
-        style={{
-          marginBottom: 16,
-          marginLeft: "20px",
+        onClick={() => {
+          const count = dataSource.length;
+          const newData = {
+            key: count.toString(),
+            STT: (count + 1).toString(),
+            MSSV: `2012455${count}`,
+            NameStudent: `Nguyen Van A${count}`,
+            ClassSTD: `DHKHDL1${count}A`,
+            Email: `NguyenVan${count}@gmail.com`,
+          };
+          setDataSource([...dataSource, newData]);
         }}
+        type="primary"
+        style={{ marginBottom: 16, marginLeft: 20 }}
       >
         Add a row
       </Button>
-      <Button
-        onClick={handleAddColumn}
-        type="primary"
-        style={{
-          marginBottom: 16,
-          marginLeft: "20px",
-        }}
-      >
+      <Button onClick={handleAddColumn} style={{ marginBottom: 16, marginLeft: 20 }}>
         Add a column
       </Button>
       <Table
-        components={components}
-        rowClassName={() => "editable-row"}
         bordered
         dataSource={dataSource}
-        columns={mergedColumns}
-        style={{ marginRight: "250px", marginLeft: "20px" }}
-        scroll={{ y: 920 }}
+        columns={columns}
         pagination={false}
+        style={{ marginRight: "250px", marginLeft: "20px" }}
+        scroll={{ y: 320 }}
       />
     </div>
   );

@@ -1,16 +1,22 @@
 import React, { useState } from "react";
 import { RiEyeCloseLine, RiEyeLine } from "react-icons/ri";
+import userApi from "../../configs/userApi";
+import { message } from 'antd';
+import { useNavigate } from 'react-router-dom';
 
 function Register() {
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    HoVaTen: "", 
+    MaGiangVien: "", 
+    Email: "", 
     password: "",
     confirmPassword: "",
   });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [notification, setNotification] = useState("");
+  const navigate = useNavigate();
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -28,16 +34,19 @@ function Register() {
   const handleFormSubmit = (event) => {
     event.preventDefault();
 
-    const { name, email, password, confirmPassword } = formData;
+    const { HoVaTen, MaGiangVien, Email, password, confirmPassword } = formData;
 
     const errors = {};
-    if (!name) {
-      errors.name = "Please enter your name.";
+    if (!HoVaTen) {
+      errors.HoVaTen = "Please enter your name.";
     }
-    if (!email) {
-      errors.email = "Please enter your email address.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.email = "Please enter a valid email address.";
+    if (!MaGiangVien) {
+      errors.MaGiangVien = "Please enter your Teacher ID.";
+    }
+    if (!Email) {
+      errors.Email = "Please enter your email address.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(Email)) {
+      errors.Email = "Please enter a valid email address.";
     }
     if (!password) {
       errors.password = "Please enter a password.";
@@ -47,7 +56,27 @@ function Register() {
     }
 
     if (Object.keys(errors).length === 0) {
-      alert(`Form submitted successfully! (This is just a simulation)`);
+      const userInfo = {
+        MaGiangVien: MaGiangVien,
+        HoVaTen: HoVaTen,
+        TenKhoa: "CNTT",
+        Email: Email,
+        SDT: "0123456789",
+        password: password,
+      };
+      console.log(userInfo);
+      userApi.register(userInfo).then((response) => {
+        console.log(response);
+        console.log(response.data.message);
+        message.success(response.data.message);
+        window.location.replace("#signin");
+      })
+      .catch((errors) => {
+        console.log(errors.response.data.message);
+        setNotification(errors.response.data.message);
+        message.error(errors.response.data.message);
+      });
+
     } else {
       setErrors(errors);
     }
@@ -61,21 +90,30 @@ function Register() {
         <input
           type="text"
           placeholder="Name"
-          name="name"
-          value={formData.name}
+          name="HoVaTen" 
+          value={formData.HoVaTen} 
           onChange={handleChange}
-          className={errors.name ? "error" : ""}
+          className={errors.HoVaTen ? "error" : ""}
         />
-        {errors.name && <p className="error-message">{errors.name}</p>}
+        {errors.HoVaTen && <p className="error-message">{errors.HoVaTen}</p>}
+        <input
+          type="text"
+          placeholder="Teacher ID"
+          name="MaGiangVien" 
+          value={formData.MaGiangVien} 
+          onChange={handleChange}
+          className={errors.MaGiangVien ? "error" : ""}
+        />
+        {errors.MaGiangVien && <p className="error-message">{errors.MaGiangVien}</p>}
         <input
           type="email"
           placeholder="Email"
-          name="email"
-          value={formData.email}
+          name="Email" 
+          value={formData.Email} 
           onChange={handleChange}
-          className={errors.email ? "error" : ""}
+          className={errors.Email ? "error" : ""}
         />
-        {errors.email && <p className="error-message">{errors.email}</p>}
+        {errors.Email && <p className="error-message">{errors.Email}</p>}
         <div className="pwStyle" style={{ position: "relative" }}>
           <input
             type={showPassword ? "text" : "password"}
@@ -83,7 +121,7 @@ function Register() {
             name="password"
             value={formData.password}
             onChange={handleChange}
-            className={errors.email ? "error" : ""}
+            className={errors.password ? "error" : ""}
           />
           <span
             style={{
@@ -124,6 +162,7 @@ function Register() {
         {errors.confirmPassword && (
           <p className="error-message">{errors.confirmPassword}</p>
         )}
+        {notification ? <p className="error-message">{notification}</p> : ""}
         <button type="submit">Sign Up</button>
       </form>
     </div>

@@ -3,7 +3,11 @@ import { Avatar, Layout, Dropdown, Menu, Modal } from "antd";
 import { BellOutlined, HomeOutlined, UserOutlined } from "@ant-design/icons";
 import { GiWhiteBook } from "react-icons/gi";
 import { IoLogOutOutline } from "react-icons/io5"; // Import the logout icon
+import { useAuth } from "../../provider/authContext";
 const { Header } = Layout;
+import { useNavigate } from "react-router-dom";
+
+
 
 const headerStyle = {
   display: "flex",
@@ -21,19 +25,12 @@ const iconGroupStyle = {
   alignItems: "center",
 };
 
-const handleMenuClick = (e) => {
-  switch (e.key) {
-    case "4":
-      // Handle logout action here
-      break;
-    default:
-      // Handle other menu item clicks if needed
-      break;
-  }
-};
+
 
 const HeaderLayout = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  let { logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleBellIconClick = () => {
     setIsModalVisible(true);
@@ -41,6 +38,19 @@ const HeaderLayout = () => {
 
   const handleModalCancel = () => {
     setIsModalVisible(false);
+  };
+
+  const handleMenuClick = (e) => {
+    switch (e.key) {
+      case "4":
+        // Handle logout action here
+        logout();
+        navigate("/");
+        break;
+      default:
+        // Handle other menu item clicks if needed
+        break;
+    }
   };
 
   const avatarMenu = (
@@ -60,14 +70,14 @@ const HeaderLayout = () => {
         },
         {
           type: "divider",
-          key: "divider", // Ensure each item has a unique key
-          style: { borderBottom: "1px solid gray" }, // Custom style for divider
+          key: "divider", 
+          style: { borderBottom: "1px solid gray" }, 
         },
         {
           label: "Đăng xuất",
           key: "4",
-          style: { color: "red" }, // Custom style for logout text
-          icon: <IoLogOutOutline style={{ marginRight: "8px" }} />, // Logout icon
+          style: { color: "red" }, 
+          icon: <IoLogOutOutline style={{ marginRight: "8px" }} />, 
         },
       ].map((item) =>
         item.type === "divider" ? (
