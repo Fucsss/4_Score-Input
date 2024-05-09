@@ -10,7 +10,7 @@ from student.models import Student
 import pandas as pd
 import io
 from sympy import sympify
-
+from django.db.models import Avg, Max, Min, Count, Q
 # Create your views here.
 class GetDanhSachDiem(APIView):
     authentication_classes = [TokenAuthentication]
@@ -195,3 +195,45 @@ class CreateNewColumnByFormula(APIView):
             Score.objects.create(MaSinhVien=Student.objects.get(MaSinhVien=MaSinhVien), MaLopHoc=classroom, TenThanhPhanDiem=NewColumnName, Diem=scores[NewColumnName])
 
         return Response({'message': 'Create new column by formula successfully!'}, status=200)
+    
+class GetStatistic(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(seft, request):
+        token = request.auth
+        MaGiangVien = token.user.MaGiangVien
+        MaLopHoc = request.data.get('MaLopHoc')
+        TenThanhPhanDiem = request.data.get('TenThanhPhanDiem')
+        try:
+            classroom = Classroom.objects.get(MaLopHoc=MaLopHoc)
+            if classroom.MaGiangVien.MaGiangVien != MaGiangVien:
+                return Response({'message': 'You do not have permission to create new column for this class!'}, status=403)
+        except Classroom.DoesNotExist:
+            return Response({'message': 'MaLopHoc is not exist!'}, status=400)
+        
+        scores = Score.objects.filter(MaLopHoc = MaLopHoc, TenThanhPhanDiem = TenThanhPhanDiem)
+        pass_scores = scores.filter(Diem__gte=5.0)
+        
+        aggregates = scores.aggregate(
+            Avg('Diem'),
+            Max('Diem'),
+            Min('Diem'),
+            total=Count('Diem'),
+            pass_total=Count('Diem', filter=Q(Diem__gte=5.0))
+        )
+        
+        average_score = aggregates['Diem__avg']
+        max_score = aggregates['Diem__max']
+        min_score = aggregates['Diem__min']
+        total_scores = aggregates['total']
+        total_pass_scores = aggregates['pass_total']
+
+        pass_rate = total_pass_scores / total_scores if total_scores else 0
+        
+        return Response({
+            'average_score': average_score,
+            'max_score': max_score,
+            'min_score': min_score,
+            'pass_rate': pass_rate,
+        })
