@@ -11,6 +11,7 @@ import pandas as pd
 import io
 from sympy import sympify
 from django.db.models import Avg, Max, Min, Count, Q
+
 # Create your views here.
 class GetDanhSachDiem(APIView):
     authentication_classes = [TokenAuthentication]
@@ -25,13 +26,13 @@ class GetDanhSachDiem(APIView):
         if classroom.MaGiangVien.MaGiangVien != MaGiangVien:
             return Response({'message': 'You do not have permission to view this class!'}, status=403)
         result = []
-        score_columns = set()  # Set to store unique score column names
+        score_columns = set() 
         for class_student in classes:
             MaSinhVien = class_student.MaSinhVien.MaSinhVien
             scores = Score.objects.filter(MaSinhVien=MaSinhVien, MaLopHoc=MaLopHoc)
             score_dict = {}
             for score in scores:
-                score_columns.add(score.TenThanhPhanDiem)  # Add score column name to the set
+                score_columns.add(score.TenThanhPhanDiem)  
                 if score.Diem is not None:  # Kiểm tra nếu score.Diem không rỗng
                     score_dict[score.TenThanhPhanDiem] = score.Diem
                 else:  # Nếu score.Diem rỗng, đặt một giá trị mặc định
@@ -41,7 +42,7 @@ class GetDanhSachDiem(APIView):
                 'Scores': score_dict if score_dict else None
             })
         return Response({
-            'score_columns': list(score_columns),  # Convert set to list
+            'score_columns': list(score_columns),  # Chuyển đổi set thành list
             'student_scores': result
         })
     
@@ -56,9 +57,9 @@ class AddDiem(APIView):
         if Classroom.objects.get(MaLopHoc=MaLopHoc).MaGiangVien.MaGiangVien != MaGiangVien:
             return Response({'message': 'You do not have permission to add score for this class!'}, status=403)
         
-        scores = request.data.get('scores')  # Get list of scores from request data
+        scores = request.data.get('scores')  # Lấy danh sách điểm từ request
 
-        existing_scores_students = []  # List to store students who already have scores
+        existing_scores_students = [] 
 
         for score in scores:
             MaSinhVien = score.get('MaSinhVien')
@@ -66,8 +67,8 @@ class AddDiem(APIView):
             Diem = score.get('Diem')
 
             if Score.objects.filter(MaSinhVien=MaSinhVien, MaLopHoc=MaLopHoc, TenThanhPhanDiem=TenThanhPhanDiem).exists():
-                existing_scores_students.append(MaSinhVien)  # Add student to the list
-                continue  # Skip to the next score
+                existing_scores_students.append(MaSinhVien)  # Thêm sinh viên vào list nếu điểm đã tồn tại  
+                continue  
 
             Score.objects.create(MaSinhVien=MaSinhVien, MaLopHoc=MaLopHoc, TenThanhPhanDiem=TenThanhPhanDiem, Diem=Diem)
         
@@ -87,7 +88,7 @@ class UpdateDiem(APIView):
         if Classroom.objects.get(MaLopHoc=MaLopHoc).MaGiangVien.MaGiangVien != MaGiangVien:
             return Response({'message': 'You do not have permission to update score for this class!'}, status=403)
         
-        scores = request.data.get('scores')  # Get list of scores from request data
+        scores = request.data.get('scores')  # Lấy danh sách điểm từ request
 
         for score in scores:
             MaSinhVien = score.get('MaSinhVien')
@@ -132,7 +133,7 @@ class AddDiemByFile(APIView):
         if 'MaSinhVien' not in df.columns:
             return Response({'message': 'Invalid CSV file, missing MaSinhVien column'}, status=400)
 
-        students = Class_Student.objects.filter(MaLopHoc=MaLopHoc) #Find students by MaLopHoc
+        students = Class_Student.objects.filter(MaLopHoc=MaLopHoc) # Tìm sinh viên bằng Mã lớp học
         for row in df.to_dict("records"):
             MaSinhVien = row.get('MaSinhVien')
             if MaSinhVien is None:
@@ -143,7 +144,7 @@ class AddDiemByFile(APIView):
             except Class_Student.DoesNotExist:
                 return Response({'message': f'Student with ID {MaSinhVien} does not exist in this class!'}, status=400)
 
-            student = class_student.MaSinhVien  # Access the Student from the Class_Student
+            student = class_student.MaSinhVien 
 
             for TenThanhPhanDiem, Diem in row.items():
                 if TenThanhPhanDiem == 'MaSinhVien':
@@ -178,18 +179,14 @@ class CreateNewColumnByFormula(APIView):
         formula = request.data.get('formula')
         expr = sympify(formula)
         variables = expr.free_symbols
-        #Extract all student score by MaLopHoc
         students = Score.objects.filter(MaLopHoc=MaLopHoc)
         df = pd.DataFrame.from_records(students.values())
         for MaSinhVien in df['MaSinhVien_id'].unique():
-            # print(MaSinhVien)
             FindSCoresByMaSinhVien = df[df['MaSinhVien_id'] == MaSinhVien]
             scores = {'MaSinhVien': MaSinhVien}
-            # Find all column need to calculate
             for var in variables:
                 if str(var) not in FindSCoresByMaSinhVien["TenThanhPhanDiem"].values:
                     scores[var] = None
-                    # return Response({'message': f'{MaSinhVien} Column {str(var)} not exist!'}, status=400)
                 scores[var] = FindSCoresByMaSinhVien[FindSCoresByMaSinhVien["TenThanhPhanDiem"] == str(var)]["Diem"].values[0]
             scores[NewColumnName] = expr.subs(scores)
             Score.objects.create(MaSinhVien=Student.objects.get(MaSinhVien=MaSinhVien), MaLopHoc=classroom, TenThanhPhanDiem=NewColumnName, Diem=scores[NewColumnName])

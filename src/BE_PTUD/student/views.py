@@ -4,10 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from .models import Class_Student, Student
 from classroom.models import Classroom
-import json
 from django.db import transaction
 import pandas as pd 
-import io
 
 # Create your views here.
 class GetDanhSachSinhVien(APIView):
@@ -20,7 +18,6 @@ class GetDanhSachSinhVien(APIView):
         if MaLopHoc is None:
             return Response({'message': 'Please provide a valid MaLopHoc!'}, status=400)
 
-        # Get list of students associated with the specified classroom
         class_students = Class_Student.objects.filter(MaLopHoc=MaLopHoc)
         responses = []
         for c in class_students:
@@ -32,7 +29,6 @@ class GetDanhSachSinhVien(APIView):
                 'SDT': c.MaSinhVien.SDT
             })
         
-        # Return response data as JSON
         return Response({'class_students': responses}, status=200)
 
 class AddSinhVien(APIView):
@@ -193,13 +189,11 @@ class AddSinhVienByFile(APIView):
                 if MaSinhVien is None or HoVaTen is None:
                     return Response({'message': 'MaSinhVien and HoVaTen are required fields.'}, status=400)
 
-                # Create or update the Student object
                 student_instance, created = Student.objects.update_or_create(
                     MaSinhVien=MaSinhVien,
                     defaults={'HoVaTen': HoVaTen, 'Email': Email, 'SDT': SDT, 'TenKhoa': TenKhoa}
                 )
 
-                # Check if the student is already associated with the classroom
                 if not Class_Student.objects.filter(MaSinhVien=student_instance, MaLopHoc=classroom).exists():
                     Class_Student.objects.create(MaSinhVien=student_instance, MaLopHoc=classroom)
 

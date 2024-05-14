@@ -1,9 +1,9 @@
 # Ứng dụng hỗ trợ giảng viên nhập điểm (Score-Input)
 
-- Dự án này là một hệ thống nhập điểm trực tuyến được thiết kế để giúp giảng viên quản lý và nhập điểm cho các sinh viên một cách hiệu quả và tiện lợi. Hệ thống cung cấp giao diện người dùng thân thiện và linh hoạt để giảng viên có thể thực hiện các hoạt động quản lý điểm một cách dễ dàng.
+- Đề tài này là xây dựng một hệ thống nhập điểm trực tuyến được thiết kế để giúp giảng viên quản lý và nhập điểm cho các sinh viên một cách hiệu quả và tiện lợi. Hệ thống cung cấp giao diện người dùng thân thiện và linh hoạt để giảng viên có thể thực hiện các hoạt động quản lý điểm một cách dễ dàng, thuận tiện hơn.
 
 - Bạn có thể trải nghiệm ứng dụng ở đây [LINK](https://update-this-link)
-- Một số sceenshot của ứng dụng
+- Một số sceenshot của ứng dụng:
 
 ## CÀI ĐẶT
 

@@ -46,6 +46,35 @@ class AddMonHoc(APIView):
         Subject.objects.create(MaMonHoc=MaMonHoc, TenMonHoc=TenMonHoc, SoTinChi=SoTinChi)
         return Response({'message': 'Add subject successful'}, status=200)
     
+#class UpdateMonHoc(APIView):
+    #authentication_classes = [TokenAuthentication]
+    #permission_classes = [IsAuthenticated]
+
+    #def post(self, request):
+        #data = request.data
+        #MaMonHoc = data.get('MaMonHoc')
+        #TenMonHoc = data.get('TenMonHoc')
+        #SoTinChi = data.get('SoTinChi')
+
+        # Check if MaMonHoc is None
+        #if MaMonHoc is None:
+            #return Response({'error': 'MaMonHoc is None'}, status=400)
+
+        # Check if MaMonHoc exists
+        #if not Subject.objects.filter(MaMonHoc=MaMonHoc).exists():
+            #return Response({'error': 'MaMonHoc does not exist'}, status=400)
+
+        # Update Subject
+        #update_fields = {}
+        #if TenMonHoc is not None:
+            #update_fields['TenMonHoc'] = TenMonHoc
+        #if SoTinChi is not None:
+            #update_fields['SoTinChi'] = SoTinChi
+
+        #Subject.objects.filter(MaMonHoc=MaMonHoc).update(**update_fields)
+        #return Response({'message': 'Update subject successful'}, status=200)
+    
+# Viết lại theo cách mới:
 class UpdateMonHoc(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
@@ -56,20 +85,23 @@ class UpdateMonHoc(APIView):
         TenMonHoc = data.get('TenMonHoc')
         SoTinChi = data.get('SoTinChi')
 
-        # Check if MaMonHoc is None
-        if MaMonHoc is None:
-            return Response({'error': 'MaMonHoc is None'}, status=400)
+        # Kiểm tra nếu MaMonHoc bị thiếu
+        if not MaMonHoc:
+            return Response({'error': 'MaMonHoc is required'}, status=400)
 
-        # Check if MaMonHoc exists
-        if not Subject.objects.filter(MaMonHoc=MaMonHoc).exists():
-            return Response({'error': 'MaMonHoc does not exist'}, status=400)
+        try:
+            # Kiểm tra sự tồn tại của MaMonHoc
+            subject = Subject.objects.get(MaMonHoc=MaMonHoc)
+        except Subject.DoesNotExist:
+            return Response({'error': 'MaMonHoc does not exist'}, status=404)
 
-        # Update Subject
-        update_fields = {}
-        if TenMonHoc is not None:
-            update_fields['TenMonHoc'] = TenMonHoc
-        if SoTinChi is not None:
-            update_fields['SoTinChi'] = SoTinChi
+        # Cập nhật thông tin môn học
+        if TenMonHoc:
+            subject.TenMonHoc = TenMonHoc
+        if SoTinChi:
+            subject.SoTinChi = SoTinChi
 
-        Subject.objects.filter(MaMonHoc=MaMonHoc).update(**update_fields)
+        # Lưu lại thay đổi
+        subject.save()
+
         return Response({'message': 'Update subject successful'}, status=200)

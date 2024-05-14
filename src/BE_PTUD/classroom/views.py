@@ -71,6 +71,6 @@ class AddLopHoc(APIView):
             new_class = Classroom(MaGiangVien=teacher_instance, TenLopHoc=TenLopHoc, TenPhongHoc=TenPhongHoc, MaMonHoc=subject_instance, NamHoc=NamHoc, HocKy=HocKy)
             new_class.save()
         except Exception as e:
-            return Response({'error': str(e)}, status=500)
+            return Response({'error': f'Error creating class: {str(e)}'}, status=500)
         
-        return Response({'message': 'Add class successful'}, status=200)
+        return Response({'message': 'Class added successfully'}, status=200)

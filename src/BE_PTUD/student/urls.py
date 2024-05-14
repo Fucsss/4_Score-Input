@@ -8,5 +8,4 @@ urlpatterns = [
     path('RemoveSinhVien/', views.RemoveSinhVien.as_view(), name='RemoveSinhVien'),
     path('UpdateSinhVien/', views.UpdateSinhVien.as_view(), name='UpdateSinhVien'), 
     path('AddSinhVienByFile/', views.AddSinhVienByFile.as_view(), name='AddSinhVienByFile'),
-
 ]

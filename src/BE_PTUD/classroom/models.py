@@ -8,8 +8,8 @@ def generate_class_code():
     if max_code is None:
         new_code = "LH00001"
     else:
-        num = int(max_code[2:]) + 1  # Extract the number part of the code and increment it
-        new_code = "LH" + str(num).zfill(5)  # Create the new code
+        num = int(max_code[2:]) + 1  
+        new_code = "LH" + str(num).zfill(5) 
     return new_code
 
 class Classroom(models.Model):

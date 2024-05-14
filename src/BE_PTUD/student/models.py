@@ -3,13 +3,12 @@ from classroom.models import Classroom
 
 # Create your models here.
 def generate_student_code():
-    # Get the highest current code
     max_code = Student.objects.all().aggregate(models.Max('MaSinhVien'))['MaSinhVien__max']
     if max_code is None:
         new_code = "SV00001"
     else:
-        num = int(max_code[2:]) + 1  # Extract the number part of the code and increment it
-        new_code = "SV" + str(num).zfill(5)  # Create the new code
+        num = int(max_code[2:]) + 1  
+        new_code = "SV" + str(num).zfill(5)
     return new_code
 
 class Student(models.Model):
