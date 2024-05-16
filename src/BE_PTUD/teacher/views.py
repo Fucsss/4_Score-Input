@@ -34,7 +34,7 @@ class signupAPIView(APIView):
         except Teacher.DoesNotExist:
             user = Teacher.objects.create_user(password=password, HoVaTen=HoVaTen, TenKhoa=TenKhoa, Email=Email, SDT=SDT)
             token, created = Token.objects.get_or_create(user=user)
-            return Response({'token': token.key, 'message': 'Signup successful'}, status=200)
+            return Response({'token': token.key, 'message': 'Signup successful', 'MaGiangVien': user.MaGiangVien}, status=200)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
 
