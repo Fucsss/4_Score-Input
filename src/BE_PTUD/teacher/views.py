@@ -23,17 +23,16 @@ class loginAPIView(APIView):
 
 class signupAPIView(APIView):
     def post(self, request):
-        MaGiangVien = request.data['MaGiangVien']
         password = request.data['password']
         HoVaTen = request.data['HoVaTen']
         TenKhoa = request.data['TenKhoa']
         Email = request.data['Email']
         SDT = request.data['SDT']
         try:
-            Teacher.objects.get(MaGiangVien = MaGiangVien)
-            return Response({'message': 'MaGiangVien already exists'}, status=400)
+            Teacher.objects.get(Email = Email)
+            return Response({'message': 'Email already exists'}, status=400)
         except Teacher.DoesNotExist:
-            user = Teacher.objects.create_user(MaGiangVien=MaGiangVien, password=password, HoVaTen=HoVaTen, TenKhoa=TenKhoa, Email=Email, SDT=SDT)
+            user = Teacher.objects.create_user(password=password, HoVaTen=HoVaTen, TenKhoa=TenKhoa, Email=Email, SDT=SDT)
             token, created = Token.objects.get_or_create(user=user)
             return Response({'token': token.key, 'message': 'Signup successful'}, status=200)
         except Exception as e:

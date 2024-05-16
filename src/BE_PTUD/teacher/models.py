@@ -13,9 +13,10 @@ def generate_teacher_code():
     return new_code
 
 class TeacherManager(BaseUserManager):
-    def create_user(self, MaGiangVien, password=None, **extra_fields):
-        if not MaGiangVien:
-            raise ValueError('The MaGiangVien field must be set')
+    def create_user(self, password=None, **extra_fields):
+        # Generate a new teacher code
+        MaGiangVien = generate_teacher_code()
+
         teacher = self.model(MaGiangVien=MaGiangVien, **extra_fields)
         teacher.set_password(password)
         teacher.save(using=self._db)
