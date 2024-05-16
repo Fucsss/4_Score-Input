@@ -30,7 +30,8 @@ class GetDanhSachLopHoc(APIView):
                 'MaMonHoc': c.MaMonHoc.MaMonHoc,
                 'TenMonHoc': c.MaMonHoc.TenMonHoc,
                 'NamHoc': c.NamHoc,
-                'HocKy': c.HocKy
+                'HocKy': c.HocKy,
+                'SoTinChi': c.MaMonHoc.SoTinChi,
             })
         
         # Convert responses to JSON string
