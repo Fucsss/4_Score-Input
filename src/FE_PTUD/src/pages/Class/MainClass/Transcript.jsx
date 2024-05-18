@@ -1,5 +1,79 @@
-import React, { useState } from "react";
-import { Button, Input, Popconfirm, Table } from "antd";
+import React, { useContext, useEffect, useRef, useState } from "react";
+import { Button, Form, Input, Table, Modal, Select } from "antd";
+
+const EditableContext = React.createContext(null);
+
+const EditableRow = ({ index, ...props }) => {
+  const [form] = Form.useForm();
+  return (
+    <Form form={form} component={false}>
+      <EditableContext.Provider value={form}>
+        <tr {...props} />
+      </EditableContext.Provider>
+    </Form>
+  );
+};
+
+const EditableCell = ({
+  title,
+  editable,
+  children,
+  dataIndex,
+  record,
+  handleSave,
+  ...restProps
+}) => {
+  const [editing, setEditing] = useState(false);
+  const inputRef = useRef(null);
+  const form = useContext(EditableContext);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current.focus();
+    }
+  }, [editing]);
+
+  const toggleEdit = () => {
+    setEditing(!editing);
+    form.setFieldsValue({
+      [dataIndex]: record[dataIndex],
+    });
+  };
+
+  const save = async () => {
+    try {
+      const values = await form.validateFields();
+      toggleEdit();
+      handleSave({ ...record, ...values });
+    } catch (errInfo) {
+      console.log("Save failed:", errInfo);
+    }
+  };
+
+  let childNode = children;
+
+  if (editable) {
+    childNode = editing ? (
+      <Form.Item
+        style={{ margin: 0 }}
+        name={dataIndex}
+        rules={[{ required: true, message: `${title} is required.` }]}
+      >
+        <Input ref={inputRef} onPressEnter={save} onBlur={save} />
+      </Form.Item>
+    ) : (
+      <div
+        className="editable-cell-value-wrap"
+        style={{ paddingRight: 24 }}
+        onClick={toggleEdit}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  return <td {...restProps}>{childNode}</td>;
+};
 
 const Transcript = () => {
   const [dataSource, setDataSource] = useState([
@@ -20,207 +94,184 @@ const Transcript = () => {
       Email: "NguyenVanA2@gmail.com",
     },
   ]);
-
   const [columns, setColumns] = useState([
     {
       title: "STT",
       dataIndex: "STT",
       width: "4%",
-      render: (_, record) => {
-        const editable = isEditing(record);
-        return editable ? (
-          <EditableCell
-            value={record.STT}
-            dataIndex="STT"
-            record={record}
-            handleSave={handleSave}
-            editing={editable}
-          />
-        ) : (
-          <div>{record.STT}</div>
-        );
-      },
+      align: "center",
+      editable: true,
     },
     {
       title: "MSSV",
       dataIndex: "MSSV",
       width: "6%",
-      render: (_, record) => renderCell(record, "MSSV"),
+      editable: true,
     },
     {
       title: "NameStudent",
       dataIndex: "NameStudent",
-      width: "20%",
-      render: (_, record) => renderCell(record, "NameStudent"),
+      width: "10%",
+      editable: true,
     },
     {
       title: "ClassSTD",
       dataIndex: "ClassSTD",
-      width: "20%",
-      render: (_, record) => renderCell(record, "ClassSTD"),
+      width: "10%",
+      editable: true,
     },
     {
       title: "Email",
       dataIndex: "Email",
-      width: "30%",
-      render: (_, record) => renderCell(record, "Email"),
-    },
-    {
-      title: "Operation",
-      dataIndex: "operation",
-      width: "20%",
-      render: (_, record) => renderOperation(record),
+      width: "15%",
+      editable: true,
     },
   ]);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [isRenameModalVisible, setIsRenameModalVisible] = useState(false);
+  const [selectedColumnIndex, setSelectedColumnIndex] = useState();
+  const [newColumnName, setNewColumnName] = useState("");
+  const [count, setCount] = useState(dataSource.length);
 
-  const [editingKey, setEditingKey] = useState("");
-
-  const isEditing = (record) => record.key === editingKey;
-
-  const edit = (key) => {
-    setEditingKey(key);
-  };
-
-  const cancel = () => {
-    setEditingKey("");
-  };
-
-  const handleDelete = (key) => {
-    const newData = dataSource.filter((item) => item.key !== key);
-    setDataSource(newData);
-    setEditingKey(""); // Kết thúc chỉnh sửa sau khi xóa
-  };
-
-  const handleSave = (key, dataIndex, inputValue) => {
+  const handleSave = (row) => {
     const newData = [...dataSource];
-    const index = newData.findIndex((item) => key === item.key);
-  
+    const index = newData.findIndex((item) => row.key === item.key);
     if (index > -1) {
-      newData[index][dataIndex] = inputValue;
-      setDataSource(newData);
-      setEditingKey(""); // Kết thúc chỉnh sửa sau khi lưu
+      const item = newData[index];
+      if (JSON.stringify(item) !== JSON.stringify(row)) {
+        newData.splice(index, 1, { ...item, ...row });
+        setDataSource(newData);
+      }
     }
   };
 
-  const handleAddColumn = () => {
-    const newColumnName = `NewColumn${columns.length}`;
-    const newColumn = {
-      title: newColumnName,
-      dataIndex: newColumnName,
-      width: "20%",
-      render: (_, record) => renderCell(record, newColumnName),
+  const handleAddRow = () => {
+    const newData = {
+      key: `${count}`,
+      STT: `${count + 1}`,
+      MSSV: `20124${count + 51}`,
+      NameStudent: `Nguyen Van A${count + 1}`,
+      ClassSTD: `DHKHDL1${count + 6}A`,
+      Email: `NguyenVanA${count + 1}@gmail.com`,
+      
     };
+    setDataSource([...dataSource, newData]);
+    setCount(count + 1);
+  };
 
-    const newDataSource = dataSource.map((item) => {
-      return {
-        ...item,
-        [newColumnName]: `NewValue${item.key}`,
-      };
-    });
+  const handleDeleteColumn = () => {
+    const updatedColumns = columns.filter((col, index) => index !== selectedColumnIndex);
+    setColumns(updatedColumns);
+    setIsDeleteModalVisible(false);
+  };
 
-    setDataSource(newDataSource);
+  const handleAddColumn = () => {
+    const newColumn = {
+      title: `Column ${columns.length + 1}`,
+      dataIndex: `column${columns.length + 1}`,
+      width: "10%",
+      editable: true,
+    };
     setColumns([...columns, newColumn]);
   };
 
-  const renderCell = (record, dataIndex) => {
-    const editable = isEditing(record);
-    return editable ? (
-      <EditableCell
-        value={record[dataIndex]}
-        dataIndex={dataIndex}
-        record={record}
-        handleSave={handleSave}
-      />
-    ) : (
-      <div>{record[dataIndex]}</div>
+  const handleRenameColumn = () => {
+    const updatedColumns = columns.map((col, idx) =>
+      idx === selectedColumnIndex ? { ...col, title: newColumnName } : col
     );
+    setColumns(updatedColumns);
+    setIsRenameModalVisible(false);
+    setNewColumnName(" ");
   };
 
-  const renderOperation = (record) => {
-    const editable = isEditing(record);
-  
-    return editable ? (
-      <span>
-        {columns.map(({ dataIndex }) => (
-          <Button
-            type="primary"
-            onClick={() => handleSave(record.key, dataIndex, record[dataIndex])}
-            style={{ marginRight: 8 }}
-          >
-            Save
-          </Button>
-        ))}
-        <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
-          <Button>Cancel</Button>
-        </Popconfirm>
-      </span>
-    ) : (
-      <span>
-        <Button onClick={() => edit(record.key)} style={{ marginRight: 8 }}>
-          Edit
-        </Button>
-        <Popconfirm
-          title="Sure to delete?"
-          onConfirm={() => handleDelete(record.key)}
-        >
-          <Button>Delete</Button>
-        </Popconfirm>
-      </span>
-    );
+  const showModal = () => {
+    setIsDeleteModalVisible(true);
   };
 
-  const EditableCell = ({ value, dataIndex, record, handleSave }) => {
-    const [inputValue, setInputValue] = useState(value);
-
-    const handleChange = (e) => {
-      setInputValue(e.target.value);
-    };
-
-    const save = () => {
-      handleSave(record.key, dataIndex, inputValue);
-    };
-
-    return (
-      <Input
-        value={inputValue}
-        onChange={handleChange}
-        onPressEnter={save}
-        onBlur={save}
-      />
-    );
+  const showRenameModal = (index) => {
+    setSelectedColumnIndex(index);
+    setIsRenameModalVisible(true);
   };
+
+  const handleCancel = () => {
+    setIsDeleteModalVisible(false);
+    setIsRenameModalVisible(false);
+  };
+
+  const components = {
+    body: {
+      row: EditableRow,
+      cell: EditableCell,
+    },
+  };
+
+  const mergedColumns = columns.map((col, index) => ({
+    ...col,
+    onCell: (record) => ({
+      record,
+      editable: col.editable,
+      dataIndex: col.dataIndex,
+      title: col.title,
+      handleSave: handleSave,
+    }),
+    onHeaderCell: () => ({
+      onDoubleClick: () => {
+        showRenameModal(index);
+      },
+    }),
+  }));
 
   return (
     <div>
-      <h1 style={{ textAlign: "center" }}>Student List</h1>
-      <Button
-        onClick={() => {
-          const count = dataSource.length;
-          const newData = {
-            key: count.toString(),
-            STT: (count + 1).toString(),
-            MSSV: `2012455${count}`,
-            NameStudent: `Nguyen Van A${count}`,
-            ClassSTD: `DHKHDL1${count}A`,
-            Email: `NguyenVan${count}@gmail.com`,
-          };
-          setDataSource([...dataSource, newData]);
-        }}
-        type="primary"
-        style={{ marginBottom: 16, marginLeft: 20 }}
-      >
+      <h1 style={{ textAlign: "center" }}>Transcript</h1>
+      <Button onClick={handleAddRow} type="primary" style={{ marginBottom: 16, marginLeft: "20px" }}>
         Add a row
       </Button>
-      <Button onClick={handleAddColumn} style={{ marginBottom: 16, marginLeft: 20 }}>
+      <Button onClick={handleAddColumn} type="primary" style={{ marginBottom: 16, marginLeft: "20px" }}>
         Add a column
       </Button>
+      <Button onClick={showModal} type="primary" style={{ marginBottom: 16, marginLeft: "20px" }}>
+        Delete a column
+      </Button>
+      <Modal title="Delete a Column" visible={isDeleteModalVisible} onOk={handleDeleteColumn} onCancel={handleCancel}>
+        <Select
+          style={{ width: 120 }}
+          onChange={setSelectedColumnIndex}
+          placeholder="Select a column"
+        >
+          {columns.map((col, index) => (
+            <Select.Option key={index} value={index}>{col.title}</Select.Option>
+          ))}
+        </Select>
+      </Modal>
+      <Button onClick={showRenameModal} type="primary" style={{ marginBottom: 16, marginLeft: "20px" }}>
+        Rename Column
+      </Button>
+      <Modal title="Rename Column" visible={isRenameModalVisible} onOk={handleRenameColumn} onCancel={handleCancel}>
+        <Select
+          onChange={(value) => setSelectedColumnIndex(value)}
+          placeholder="Select a column"
+          style={{ marginBottom: 5, width: "auto" }}
+        >
+          {columns.map((col, index) => (
+            <Select.Option key={index} value={index}>{col.title}</Select.Option>
+          ))}
+        </Select>
+        <Input
+          placeholder="New column name"
+          value={newColumnName}
+          onChange={(e) => setNewColumnName(e.target.value)}
+        />
+      </Modal>
       <Table
+        components={components}
+        rowClassName={() => "editable-row"}
         bordered
         dataSource={dataSource}
-        columns={columns}
-        pagination={false}
+        columns={mergedColumns}
         style={{ marginRight: "250px", marginLeft: "20px" }}
-        scroll={{ y: 320 }}
+        scroll={{x: 1200,  y: 600 }}
+        pagination={false}
       />
     </div>
   );
