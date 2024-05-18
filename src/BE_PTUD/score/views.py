@@ -11,6 +11,9 @@ import pandas as pd
 import io
 from sympy import sympify
 from django.db.models import Avg, Max, Min, Count, Q
+from django.http import HttpResponse
+import csv
+from collections import defaultdict
 
 # Create your views here.
 class GetDanhSachDiem(APIView):
@@ -234,3 +237,58 @@ class GetStatistic(APIView):
             'min_score': min_score,
             'pass_rate': pass_rate,
         })
+        
+### Tải xuống bảng điểm:
+class DownloadBangDiem(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        MaLopHoc = request.query_params.get('MaLopHoc')
+        
+        if not MaLopHoc:
+            return Response({'message': 'Please provide a valid MaLopHoc!'}, status=400)
+        
+        try:
+            classroom = Classroom.objects.get(MaLopHoc=MaLopHoc)
+        except Classroom.DoesNotExist:
+            return Response({'message': 'Classroom does not exist!'}, status=404)
+
+        scores = Score.objects.filter(MaLopHoc=classroom).select_related('MaSinhVien')
+
+        if not scores.exists():
+            return Response({'message': 'No scores found for this class!'}, status=404)
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="bang_diem_{MaLopHoc}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['MaSinhVien', 'HoVaTen', 'TK', 'TH', 'GK', 'CK', 'DTB', 'Tong Ket'])
+
+        student_scores = {}
+        for score in scores:
+            MaSinhVien = score.MaSinhVien.MaSinhVien
+            if MaSinhVien not in student_scores:
+                student_scores[MaSinhVien] = {
+                    'HoVaTen': score.MaSinhVien.HoVaTen,
+                    'TK': None,
+                    'TH': None,
+                    'GK': None,
+                    'CK': None,
+                    'DTB': None,
+                    'Tong Ket': None
+                }
+            student_scores[MaSinhVien][score.TenThanhPhanDiem] = score.Diem
+
+        for MaSinhVien, score_data in student_scores.items():
+            writer.writerow([
+                MaSinhVien,
+                score_data['HoVaTen'],
+                score_data.get('TK', ''),
+                score_data.get('TH', ''),
+                score_data.get('GK', ''),
+                score_data.get('CK', ''),
+                score_data.get('DTB', ''),
+                score_data.get('TongKet', '')
+            ])
+
+        return response

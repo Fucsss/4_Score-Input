@@ -8,4 +8,5 @@ urlpatterns = [
     path('UpdateDiem/', views.UpdateDiem.as_view(), name = 'UpdateDiem'),
     path('CreateNewColumnByFormula/', views.CreateNewColumnByFormula.as_view(), name = 'CreateNewColumnByFormula'),  
     path('Statistic/', views.GetStatistic.as_view(), name = 'Statistic'),
+    path('DownloadBangDiem/', views.DownloadBangDiem.as_view(), name='DownloadBangDiem'),
 ]

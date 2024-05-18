@@ -246,3 +246,4 @@ class DownloadDanhSachSinhVien(APIView):
 
         except Exception as e:
             return Response({'message': str(e)}, status=500)
+        
