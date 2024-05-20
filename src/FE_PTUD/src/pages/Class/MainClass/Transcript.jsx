@@ -1,227 +1,210 @@
-import React, { useState } from "react";
-import { Button, Input, Popconfirm, Table } from "antd";
+import React, { useState, useEffect, useRef } from 'react';
+import { Button, Input, Popconfirm, Table, Modal, Form, message, Upload, Select } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
+import axios from 'axios';
+
+const { Option } = Select;
 
 const Transcript = () => {
-  const [dataSource, setDataSource] = useState([
-    {
-      key: "0",
-      STT: "1",
-      MSSV: "20124551",
-      NameStudent: "Nguyen Van A1",
-      ClassSTD: "DHKHDL16A",
-      Email: "NguyenVanA1@gmail.com",
-    },
-    {
-      key: "1",
-      STT: "2",
-      MSSV: "20124552",
-      NameStudent: "Nguyen Van A2",
-      ClassSTD: "DHKHDL17A",
-      Email: "NguyenVanA2@gmail.com",
-    },
-  ]);
-
+  const [dataSource, setDataSource] = useState([]);
   const [columns, setColumns] = useState([
+    { title: 'STT', dataIndex: 'STT', width: '5%', editable: false, sorter: (a, b) => a.STT - b.STT },
+    { title: 'MaSinhVien', dataIndex: 'MaSinhVien', width: 'auto', editable: true },
+    { title: 'HoVaTen', dataIndex: 'HoVaTen', width: 'auto', editable: true },
+    { title: 'TenKhoa', dataIndex: 'TenKhoa', width: 'auto', editable: true },
+    { title: 'Email', dataIndex: 'Email', width: 'auto', editable: true },
     {
-      title: "STT",
-      dataIndex: "STT",
-      width: "4%",
+      title: 'Operation',
+      fixed: 'right',
+      width: 100,
+      dataIndex: 'operation',
       render: (_, record) => {
-        const editable = isEditing(record);
+        const editable = record.MaSinhVien === editingKey;
         return editable ? (
-          <EditableCell
-            value={record.STT}
-            dataIndex="STT"
-            record={record}
-            handleSave={handleSave}
-            editing={editable}
-          />
+          <span>
+            <Button onClick={() => handleSave(record.MaSinhVien)} style={{ marginRight: 8 }}>Save</Button>
+            <Popconfirm title="Sure to cancel?" onConfirm={handleCancel}>
+              <Button>Cancel</Button>
+            </Popconfirm>
+          </span>
         ) : (
-          <div>{record.STT}</div>
+          <span>
+            <Button onClick={() => handleEdit(record.MaSinhVien)}>Edit</Button>
+            <Popconfirm title="Sure to delete?" onConfirm={() => handleDelete(record.MaSinhVien)}>
+              <Button>Delete</Button>
+            </Popconfirm>
+          </span>
         );
-      },
-    },
-    {
-      title: "MSSV",
-      dataIndex: "MSSV",
-      width: "6%",
-      render: (_, record) => renderCell(record, "MSSV"),
-    },
-    {
-      title: "NameStudent",
-      dataIndex: "NameStudent",
-      width: "20%",
-      render: (_, record) => renderCell(record, "NameStudent"),
-    },
-    {
-      title: "ClassSTD",
-      dataIndex: "ClassSTD",
-      width: "20%",
-      render: (_, record) => renderCell(record, "ClassSTD"),
-    },
-    {
-      title: "Email",
-      dataIndex: "Email",
-      width: "30%",
-      render: (_, record) => renderCell(record, "Email"),
-    },
-    {
-      title: "Operation",
-      dataIndex: "operation",
-      width: "20%",
-      render: (_, record) => renderOperation(record),
-    },
+      }
+    }
   ]);
+  const [editingKey, setEditingKey] = useState('');
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [modalContent, setModalContent] = useState('');
+  const [selectedColumns, setSelectedColumns] = useState([]);
+  const [newColumnName, setNewColumnName] = useState('');
+  const [fileList, setFileList] = useState([]);
+  const formRef = useRef(null);
 
-  const [editingKey, setEditingKey] = useState("");
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const isEditing = (record) => record.key === editingKey;
+  const fetchData = async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      message.error('No token found. Please log in.');
+      return;
+    }
 
-  const edit = (key) => {
-    setEditingKey(key);
+    try {
+      const { data } = await axios.get('http://127.0.0.1:8000/student/GetDanhSachSinhVien/', {
+        headers: { Authorization: 'Token ${token}' }
+      });
+      setDataSource(data.class_students.map((item, index) => ({ ...item, STT: index + 1 })));
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        message.error('Unauthorized. Please log in again.');
+      } else {
+        message.error('Error fetching data from server');
+      }
+    }
   };
 
-  const cancel = () => {
-    setEditingKey("");
+  const handleEdit = (MaSinhVien) => {
+    setEditingKey(MaSinhVien);
   };
 
-  const handleDelete = (key) => {
-    const newData = dataSource.filter((item) => item.key !== key);
-    setDataSource(newData);
-    setEditingKey(""); // Kết thúc chỉnh sửa sau khi xóa
+  const handleCancel = () => {
+    setEditingKey('');
   };
 
-  const handleSave = (key, dataIndex, inputValue) => {
-    const newData = [...dataSource];
-    const index = newData.findIndex((item) => key === item.key);
-  
-    if (index > -1) {
-      newData[index][dataIndex] = inputValue;
-      setDataSource(newData);
-      setEditingKey(""); // Kết thúc chỉnh sửa sau khi lưu
+  const handleDelete = async (MaSinhVien) => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      message.error('No token found. Please log in.');
+      return;
+    }
+
+    try {
+      await axios.post('http://127.0.0.1:8000/student/RemoveSinhVien/', { MaSinhVien }, {
+        headers: { Authorization: `Token ${token}` }
+      });
+      message.success('Student successfully deleted.');
+      fetchData();
+    } catch (error) {
+      message.error('Failed to delete student');
+    }
+  };
+
+  const handleSave = async (MaSinhVien) => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      message.error('No token found. Please log in.');
+      return;
+    }
+
+    try {
+      const row = await formRef.current.validateFields();
+      await axios.post('http://127.0.0.1:8000/student/UpdateSinhVien/', { MaSinhVien, ...row }, {
+        headers: { Authorization: `Token ${token}` }
+      });
+      message.success('Student successfully updated.');
+      fetchData();
+      setEditingKey('');
+    } catch (error) {
+      message.error('Failed to save student');
     }
   };
 
   const handleAddColumn = () => {
-    const newColumnName = `NewColumn${columns.length}`;
+    const newColumnIndex = columns.length - 1;
     const newColumn = {
-      title: newColumnName,
-      dataIndex: newColumnName,
-      width: "20%",
-      render: (_, record) => renderCell(record, newColumnName),
+      title: `New Column ${newColumnIndex}`,
+      dataIndex: `newColumn${newColumnIndex}`,
+      editable: true,
+      render: text => <Input defaultValue={text} />
     };
-
-    const newDataSource = dataSource.map((item) => {
-      return {
-        ...item,
-        [newColumnName]: `NewValue${item.key}`,
-      };
-    });
-
-    setDataSource(newDataSource);
-    setColumns([...columns, newColumn]);
+    setColumns([...columns.slice(0, -1), newColumn, columns[columns.length - 1]]);
   };
 
-  const renderCell = (record, dataIndex) => {
-    const editable = isEditing(record);
-    return editable ? (
-      <EditableCell
-        value={record[dataIndex]}
-        dataIndex={dataIndex}
-        record={record}
-        handleSave={handleSave}
-      />
-    ) : (
-      <div>{record[dataIndex]}</div>
-    );
+  const showModal = (action) => {
+    setModalContent(action);
+    setIsModalVisible(true);
   };
 
-  const renderOperation = (record) => {
-    const editable = isEditing(record);
-  
-    return editable ? (
-      <span>
-        {columns.map(({ dataIndex }) => (
-          <Button
-            type="primary"
-            onClick={() => handleSave(record.key, dataIndex, record[dataIndex])}
-            style={{ marginRight: 8 }}
-          >
-            Save
-          </Button>
-        ))}
-        <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
-          <Button>Cancel</Button>
-        </Popconfirm>
-      </span>
-    ) : (
-      <span>
-        <Button onClick={() => edit(record.key)} style={{ marginRight: 8 }}>
-          Edit
-        </Button>
-        <Popconfirm
-          title="Sure to delete?"
-          onConfirm={() => handleDelete(record.key)}
-        >
-          <Button>Delete</Button>
-        </Popconfirm>
-      </span>
-    );
+  const handleModalOk = () => {
+    if (modalContent === 'deleteColumn') {
+      const newColumns = columns.filter((col) => !selectedColumns.includes(col.dataIndex));
+      setColumns([...newColumns, columns[columns.length - 1]]);
+    } else if (modalContent === 'renameColumn') {
+      const newColumns = columns.map((col) => {
+        if (col.dataIndex === selectedColumns[0]) {
+          return { ...col, title: newColumnName };
+        }
+        return col;
+      });
+      setColumns([...newColumns.slice(0, -1), columns[columns.length - 1]]);
+    }
+    setIsModalVisible(false);
+    setSelectedColumns([]);
+    setNewColumnName('');
   };
 
-  const EditableCell = ({ value, dataIndex, record, handleSave }) => {
-    const [inputValue, setInputValue] = useState(value);
+  const handleUpload = async ({ file }) => {
+    const formData = new FormData();
+    formData.append('file', file);
 
-    const handleChange = (e) => {
-      setInputValue(e.target.value);
-    };
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      message.error('No token found. Please log in.');
+      return;
+    }
 
-    const save = () => {
-      handleSave(record.key, dataIndex, inputValue);
-    };
-
-    return (
-      <Input
-        value={inputValue}
-        onChange={handleChange}
-        onPressEnter={save}
-        onBlur={save}
-      />
-    );
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/student/AddSinhVienByFile/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Token ${token}`
+        }
+      });
+      message.success(`${file.name} file uploaded successfully`);
+      console.log('Response data:', response.data); // Log the response data
+      setDataSource(response.data.class_students.map((item, index) => ({ ...item, STT: index + 1 })));
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        message.error('Unauthorized. Please log in again.');
+      } else {
+        message.error(`${file.name} file upload failed`);
+      }
+    }
   };
 
   return (
     <div>
-      <h1 style={{ textAlign: "center" }}>Student List</h1>
-      <Button
-        onClick={() => {
-          const count = dataSource.length;
-          const newData = {
-            key: count.toString(),
-            STT: (count + 1).toString(),
-            MSSV: `2012455${count}`,
-            NameStudent: `Nguyen Van A${count}`,
-            ClassSTD: `DHKHDL1${count}A`,
-            Email: `NguyenVan${count}@gmail.com`,
-          };
-          setDataSource([...dataSource, newData]);
-        }}
-        type="primary"
-        style={{ marginBottom: 16, marginLeft: 20 }}
-      >
-        Add a row
-      </Button>
-      <Button onClick={handleAddColumn} style={{ marginBottom: 16, marginLeft: 20 }}>
-        Add a column
-      </Button>
+      <h1 style={{ textAlign: "center" }}>Transcript</h1>
+      <Button type='primary' onClick={handleAddColumn} style={{ marginBottom: 16, marginLeft: "20px" }}>Add Column</Button>
+      <Button type='primary' onClick={() => showModal('deleteColumn')} style={{ marginBottom: 16, marginLeft: "20px" }}>Delete Column</Button>
+      <Button type='primary' onClick={() => showModal('renameColumn')} style={{ marginBottom: 16, marginLeft: "20px" }}>Rename Column</Button>
+      <Upload customRequest={handleUpload} beforeUpload={() => false} accept=".csv, .xml">
+        <Button type='primary' icon={<UploadOutlined />} style={{ marginBottom: 16, marginLeft: "20px" }}>Upload CSV</Button>
+      </Upload>
+      <Modal title={`${modalContent} Column`} visible={isModalVisible} onOk={handleModalOk} onCancel={() => setIsModalVisible(false)}>
+        {modalContent === 'deleteColumn' && <Select mode="multiple" style={{ width: '100%' }} onChange={setSelectedColumns}>{columns.map(col => <Option key={col.dataIndex}>{col.title}</Option>)}</Select>}
+        {modalContent === 'renameColumn' && (
+          <>
+            <Select style={{ width: '100%' }} onChange={setSelectedColumns}>{columns.map(col => <Option key={col.dataIndex}>{col.title}</Option>)}</Select>
+            <Input style={{ marginTop: '5%' }} placeholder="New column name" value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} />
+          </>
+        )}
+      </Modal>
       <Table
-        bordered
         dataSource={dataSource}
         columns={columns}
+        rowKey="MaSinhVien"
         pagination={false}
-        style={{ marginRight: "250px", marginLeft: "20px" }}
-        scroll={{ y: 320 }}
-      />
+        style={{ marginLeft: "20px", marginRight: "250px", width: "auto" }}
+        scroll={{ x: 1000, y: 450 }} />
     </div>
   );
 };
