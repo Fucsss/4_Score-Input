@@ -15,7 +15,7 @@ class GetDanhSachSinhVien(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        MaLopHoc = request.data.get('MaLopHoc')
+        MaLopHoc = request.GET.get('MaLopHoc')
         
         if MaLopHoc is None:
             return Response({'message': 'Please provide a valid MaLopHoc!'}, status=400)
