@@ -3,6 +3,9 @@ import { Card, Typography, Modal, Form, Input, Button, Select } from "antd";
 import { PlusSquareOutlined } from "@ant-design/icons";
 import LopHocApi from "../../configs/LopHocApi.js";
 import MonHocApi from "../../configs/MonHocApi.jsx";
+import { Link } from "react-router-dom";
+import { useMaLopHoc } from "../../provider/authContext.jsx";
+
 
 const linkStyle = {
   textDecoration: "none",
@@ -17,6 +20,12 @@ const Dashboard = () => {
   const [form] = Form.useForm();
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const { maLopHoc, setMaLopHoc } = useMaLopHoc();
+
+  const handleLinkClick = (maLopHoc) => {
+    setMaLopHoc(maLopHoc);
+    localStorage.setItem("maLopHoc", maLopHoc);
+  };
 
 
   const handleModalOpen = () => {
@@ -155,9 +164,13 @@ const Dashboard = () => {
           <Card
             key={index}
             title={
-              <a href="#" style={linkStyle}>
+              <Link 
+                to={`/class#StudentList/${classItem.MaLopHoc}`} 
+                style={linkStyle}
+                onClick={() => handleLinkClick(classItem.MaLopHoc)}
+              >
                 {classItem.TenMonHoc}
-              </a>
+              </Link>
             }
             style={{
               margin: "20px",

@@ -1,24 +1,45 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button, Input, Popconfirm, Table } from "antd";
+import { useMaLopHoc } from "../../../provider/authContext";
+import DS_SinhVienApi from "../../../configs/DS_SinhVienApi";
 
 const StudentList = () => {
+  const { maLopHoc } = useMaLopHoc();
+
+  useEffect(() => {
+    console.log(maLopHoc);
+
+    const fetchDSSV = async () => {
+      const token = localStorage.getItem("token");
+      console.log(`Token: ${token}`);
+      try {
+        const response = await DS_SinhVienApi.getAll(maLopHoc);
+        console.log(response.data);
+
+        const LopHocList = response.data; // No need to parse
+        console.log(LopHocList);
+
+        if (response.status === 200) {
+          setDataSource(response.data.class_students.map((student, index) => ({
+            key: index.toString(),
+            STT: (index + 1).toString(),
+            MSSV: student.MaSinhVien,
+            NameStudent: student.HoVaTen,
+            ClassSTD: student.TenKhoa,
+            Email: student.Email,
+          })));
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchDSSV();
+  }, [maLopHoc]);
+
+
   const [dataSource, setDataSource] = useState([
-    {
-      key: "0",
-      STT: "1",
-      MSSV: "20124551",
-      NameStudent: "Nguyen Van A1",
-      ClassSTD: "DHKHDL16A",
-      Email: "NguyenVanA1@gmail.com",
-    },
-    {
-      key: "1",
-      STT: "2",
-      MSSV: "20124552",
-      NameStudent: "Nguyen Van A2",
-      ClassSTD: "DHKHDL17A",
-      Email: "NguyenVanA2@gmail.com",
-    },
+    
   ]);
 
   const [editingKey, setEditingKey] = useState("");
@@ -55,7 +76,6 @@ const StudentList = () => {
       title: "STT",
       dataIndex: "STT",
       width: "4%",
-      
     },
     {
       title: "MSSV",
@@ -142,7 +162,9 @@ const StudentList = () => {
 
         return editable ? (
           <span>
-            <Button type="primary" onClick={() => handleSave(record.key)}>Save</Button>
+            <Button type="primary" onClick={() => handleSave(record.key)}>
+              Save
+            </Button>
             <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
               <Button>Cancel</Button>
             </Popconfirm>
@@ -174,7 +196,12 @@ const StudentList = () => {
     };
 
     return editing ? (
-      <Input value={inputValue} onChange={handleChange} onPressEnter={save} onBlur={save} />
+      <Input
+        value={inputValue}
+        onChange={handleChange}
+        onPressEnter={save}
+        onBlur={save}
+      />
     ) : (
       <div>{value}</div>
     );
