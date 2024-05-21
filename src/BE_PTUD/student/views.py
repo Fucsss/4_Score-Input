@@ -15,8 +15,8 @@ class GetDanhSachSinhVien(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        MaLopHoc = request.data.get('MaLopHoc')
-        
+        MaLopHoc = request.query_params.get('MaLopHoc')
+
         if MaLopHoc is None:
             return Response({'message': 'Please provide a valid MaLopHoc!'}, status=400)
 
@@ -31,9 +31,10 @@ class GetDanhSachSinhVien(APIView):
                 'Email': c.MaSinhVien.Email,
                 'SDT': c.MaSinhVien.SDT
             })
-        
+
         # Return response data as JSON
         return Response({'class_students': responses}, status=200)
+
 
 class AddSinhVien(APIView):
     authentication_classes = [TokenAuthentication]
