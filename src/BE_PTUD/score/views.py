@@ -19,7 +19,7 @@ class GetDanhSachDiem(APIView):
     def get(self, request):
         token = request.auth
         MaGiangVien = token.user.MaGiangVien
-        MaLopHoc = request.data.get('MaLopHoc')
+        MaLopHoc = request.query_params.get('MaLopHoc')
         classes = Class_Student.objects.filter(MaLopHoc=MaLopHoc)
         classroom = Classroom.objects.get(MaLopHoc=MaLopHoc)
         if classroom.MaGiangVien.MaGiangVien != MaGiangVien:
