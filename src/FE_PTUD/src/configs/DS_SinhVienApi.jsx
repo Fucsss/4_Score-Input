@@ -19,11 +19,12 @@ const DS_SinhVienApi = {
   },
 
   async add(data) {
-    const url = "/student/GetDanhSachSinhVien/";
-    const token = localStorage.getItem("token"); // Lấy token từ localStorage
+    const url = "/student/AddSinhVien/"; 
+    const token = localStorage.getItem("token"); 
     const config = {
         headers: {
-            Authorization: `Token ${token}` // Thêm token vào header
+            Authorization: `Token ${token}`,
+            'Content-Type': 'application/json'
         }
     };
     return await axiosInstance.post(url, data, config);
