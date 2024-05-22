@@ -16,31 +16,29 @@ const StudentList = () => {
         const response = await DS_SinhVienApi.getAll(maLopHoc);
         console.log(response.data);
 
-        const LopHocList = response.data; // No need to parse
+        const LopHocList = response.data;
         console.log(LopHocList);
 
         if (response.status === 200) {
-          setDataSource(response.data.class_students.map((student, index) => ({
-            key: index.toString(),
-            STT: (index + 1).toString(),
-            MSSV: student.MaSinhVien,
-            NameStudent: student.HoVaTen,
-            ClassSTD: student.TenKhoa,
-            Email: student.Email,
-          })));
+          setDataSource(
+            response.data.class_students.map((student, index) => ({
+              key: index.toString(),
+              STT: (index + 1).toString(),
+              MaSinhVien: student.MaSinhVien,
+              HoVaTen: student.HoVaTen,
+              TenKhoa: student.TenKhoa,
+              Email: student.Email,
+            }))
+          );
         }
       } catch (error) {
         console.error(error);
       }
     };
-
     fetchDSSV();
   }, [maLopHoc]);
 
-
-  const [dataSource, setDataSource] = useState([
-    
-  ]);
+  const [dataSource, setDataSource] = useState([]);
 
   const [editingKey, setEditingKey] = useState("");
 
@@ -78,59 +76,59 @@ const StudentList = () => {
       width: "4%",
     },
     {
-      title: "MSSV",
-      dataIndex: "MSSV",
+      title: "MaSinhVien",
+      dataIndex: "MaSinhVien",
       width: "6%",
       render: (_, record) => {
         const editable = isEditing(record);
         return editable ? (
           <EditableCell
-            value={record.MSSV}
-            dataIndex="MSSV"
+            value={record.MaSinhVien}
+            dataIndex="MaSinhVien"
             record={record}
             handleSave={handleSave}
             editing={editable}
           />
         ) : (
-          <div>{record.MSSV}</div>
+          <div>{record.MaSinhVien}</div>
         );
       },
     },
     {
-      title: "NameStudent",
-      dataIndex: "NameStudent",
+      title: "HoVaTen",
+      dataIndex: "HoVaTen",
       width: "20%",
       render: (_, record) => {
         const editable = isEditing(record);
         return editable ? (
           <EditableCell
-            value={record.NameStudent}
-            dataIndex="NameStudent"
+            value={record.HoVaTen}
+            dataIndex="HoVaTen"
             record={record}
             handleSave={handleSave}
             editing={editable}
           />
         ) : (
-          <div>{record.NameStudent}</div>
+          <div>{record.HoVaTen}</div>
         );
       },
     },
     {
-      title: "ClassSTD",
-      dataIndex: "ClassSTD",
+      title: "TenKhoa",
+      dataIndex: "TenKhoa",
       width: "20%",
       render: (_, record) => {
         const editable = isEditing(record);
         return editable ? (
           <EditableCell
-            value={record.ClassSTD}
-            dataIndex="ClassSTD"
+            value={record.TenKhoa}
+            dataIndex="TenKhoa"
             record={record}
             handleSave={handleSave}
             editing={editable}
           />
         ) : (
-          <div>{record.ClassSTD}</div>
+          <div>{record.TenKhoa}</div>
         );
       },
     },
@@ -211,17 +209,26 @@ const StudentList = () => {
     <div>
       <h1 style={{ textAlign: "center" }}>Student List</h1>
       <Button
-        onClick={() => {
+        onClick={async () => {
           const count = dataSource.length;
           const newData = {
             key: count.toString(),
             STT: (count + 1).toString(),
-            MSSV: `2012455${count}`,
-            NameStudent: `Nguyen Van A${count}`,
-            ClassSTD: `DHKHDL1${count}A`,
+            MaLopHoc: maLopHoc,
+            HoVaTen: `Nguyen Van A${count}`,
             Email: `NguyenVan${count}@gmail.com`,
+            TenKhoa: `CNPM`,
+            SDT: "0902705024",
+            MaSinhVien: `SV201133${count}`,
           };
-          setDataSource([...dataSource, newData]);
+          try {
+            const response = await DS_SinhVienApi.add(newData);
+            if (response.status === 200) {
+              setDataSource([...dataSource, newData]);
+            }
+          } catch (error) {
+            console.error(error);
+          }
         }}
         type="primary"
         style={{ marginBottom: 16, marginLeft: 20 }}

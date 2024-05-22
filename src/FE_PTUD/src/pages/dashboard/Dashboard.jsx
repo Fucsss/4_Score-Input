@@ -165,7 +165,7 @@ const Dashboard = () => {
             key={index}
             title={
               <Link 
-                to={`/class#StudentList/${classItem.MaLopHoc}`} 
+                to={`/class#StudentList?MaLopHoc=${classItem.MaLopHoc}`} 
                 style={linkStyle}
                 onClick={() => handleLinkClick(classItem.MaLopHoc)}
               >
