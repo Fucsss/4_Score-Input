@@ -48,17 +48,27 @@ const StudentList = () => {
     setEditingKey(key);
   };
 
-  const cancel = () => {
-    setEditingKey("");
+  // const cancel = () => {
+  //   setEditingKey("");
+  // };
+
+  const handleDelete = async (key) => {
+    const studentToDelete = dataSource.find((item) => item.key === key);
+    try {
+      const response = await DS_SinhVienApi.remove({
+        MaSinhVien: studentToDelete.MaSinhVien,
+      });
+      if (response.status === 200) {
+        const newData = dataSource.filter((item) => item.key !== key);
+        setDataSource(newData);
+        setEditingKey("");
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleDelete = (key) => {
-    const newData = dataSource.filter((item) => item.key !== key);
-    setDataSource(newData);
-    setEditingKey(""); // Đảm bảo kết thúc chỉnh sửa nếu dòng đang được chỉnh sửa bị xóa
-  };
-
-  const handleSave = (key, dataIndex, value) => {
+  const handleSave = async (key, dataIndex, value) => {
     const newData = [...dataSource];
     const index = newData.findIndex((item) => key === item.key);
 
@@ -66,6 +76,16 @@ const StudentList = () => {
       newData[index][dataIndex] = value;
       setDataSource(newData);
       setEditingKey(""); // Kết thúc chỉnh sửa sau khi lưu
+
+      // Call the update API
+      try {
+        const response = await DS_SinhVienApi.update(newData[index]);
+        if (response.status !== 200) {
+          console.error("Failed to update data on the server");
+        }
+      } catch (error) {
+        console.error(error);
+      }
     }
   };
 
@@ -78,7 +98,7 @@ const StudentList = () => {
     {
       title: "MaSinhVien",
       dataIndex: "MaSinhVien",
-      width: "6%",
+      width: "8%",
       render: (_, record) => {
         const editable = isEditing(record);
         return editable ? (
@@ -163,9 +183,10 @@ const StudentList = () => {
             <Button type="primary" onClick={() => handleSave(record.key)}>
               Save
             </Button>
-            <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
-              <Button>Cancel</Button>
-            </Popconfirm>
+            {/* <Button onClick={cancel}>Cancel</Button> */}
+            {/* <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
+              <a>Cancel</a>
+            </Popconfirm> */}
           </span>
         ) : (
           <span>
@@ -242,6 +263,7 @@ const StudentList = () => {
         pagination={false}
         style={{ marginRight: "250px", marginLeft: "20px" }}
         scroll={{ y: 920 }}
+        
       />
     </div>
   );
