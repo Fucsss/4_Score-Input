@@ -237,5 +237,6 @@ class GetStatistic(APIView):
             'max_score': max_score,
             'min_score': min_score,
             'pass_rate': pass_rate,
+            'fail_rate': 1 - pass_rate,
         })
         
