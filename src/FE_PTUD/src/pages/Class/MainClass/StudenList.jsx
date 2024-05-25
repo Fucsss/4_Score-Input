@@ -1,101 +1,46 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
-import { Button, Form, Input, Popconfirm, Table } from "antd";
-
-const EditableContext = React.createContext(null);
-
-const EditableRow = ({ index, ...props }) => {
-  const [form] = Form.useForm();
-  return (
-    <Form form={form} component={false}>
-      <EditableContext.Provider value={form}>
-        <tr {...props} />
-      </EditableContext.Provider>
-    </Form>
-  );
-};
-
-const EditableCell = ({
-  title,
-  editable,
-  children,
-  dataIndex,
-  record,
-  handleSave,
-  ...restProps
-}) => {
-  const [editing, setEditing] = useState(false);
-  const inputRef = useRef(null);
-  const form = useContext(EditableContext);
-
-  useEffect(() => {
-    if (editing) {
-      inputRef.current.focus();
-    }
-  }, [editing]);
-
-  const toggleEdit = () => {
-    setEditing(!editing);
-    form.setFieldsValue({
-      [dataIndex]: record[dataIndex],
-    });
-  };
-
-  const save = async () => {
-    try {
-      const values = await form.validateFields();
-      toggleEdit();
-      handleSave({ ...record, ...values });
-    } catch (errInfo) {
-      console.log("Save failed:", errInfo);
-    }
-  };
-
-  let childNode = children;
-
-  if (editable) {
-    childNode = editing ? (
-      <Form.Item
-        style={{ margin: 0 }}
-        name={dataIndex}
-        rules={[{ required: true, message: `${title} is required.` }]}
-      >
-        <Input ref={inputRef} onPressEnter={save} onBlur={save} />
-      </Form.Item>
-    ) : (
-      <div
-        className="editable-cell-value-wrap"
-        style={{ paddingRight: 24 }}
-        onClick={toggleEdit}
-      >
-        {children}
-      </div>
-    );
-  }
-
-  return <td {...restProps}>{childNode}</td>;
-};
+import React, { useState, useEffect } from "react";
+import { Button, Input, Popconfirm, Table } from "antd";
+import { useMaLopHoc } from "../../../provider/authContext";
+import DS_SinhVienApi from "../../../configs/DS_SinhVienApi";
 
 const StudentList = () => {
-  const [dataSource, setDataSource] = useState([
-    {
-      key: "0",
-      STT: "1",
-      MSSV: "20124551",
-      NameStudent: "Nguyen Van A1",
-      ClassSTD: "DHKHDL16A",
-      Email: "NguyenVanA1@gmail.com",
-    },
-    {
-      key: "1",
-      STT: "2",
-      MSSV: "20124552",
-      NameStudent: "Nguyen Van A2",
-      ClassSTD: "DHKHDL17A",
-      Email: "NguyenVanA2@gmail.com",
-    },
-  ]);
-  const [count, setCount] = useState(2);
-  const [editingKey, setEditingKey] = useState(""); // State để theo dõi key của dòng đang được chỉnh sửa
+  const { maLopHoc } = useMaLopHoc();
+
+  useEffect(() => {
+    console.log(maLopHoc);
+
+    const fetchDSSV = async () => {
+      const token = localStorage.getItem("token");
+      console.log(`Token: ${token}`);
+      try {
+        const response = await DS_SinhVienApi.getAll(maLopHoc);
+        console.log(response.data);
+
+        const LopHocList = response.data;
+        console.log(LopHocList);
+
+        if (response.status === 200) {
+          setDataSource(
+            response.data.class_students.map((student, index) => ({
+              key: index.toString(),
+              STT: (index + 1).toString(),
+              MaSinhVien: student.MaSinhVien,
+              HoVaTen: student.HoVaTen,
+              TenKhoa: student.TenKhoa,
+              Email: student.Email,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchDSSV();
+  }, [maLopHoc]);
+
+  const [dataSource, setDataSource] = useState([]);
+
+  const [editingKey, setEditingKey] = useState("");
 
   const isEditing = (record) => record.key === editingKey;
 
@@ -103,49 +48,45 @@ const StudentList = () => {
     setEditingKey(key);
   };
 
-  const cancel = () => {
-    setEditingKey("");
-  };
+  // const cancel = () => {
+  //   setEditingKey("");
+  // };
 
-  const handleDelete = (key) => {
-    const newData = dataSource.filter((item) => item.key !== key);
-    setDataSource(newData);
-  };
-
-  const handleAdd = () => {
-    const newData = {
-      key: count.toString(),
-      STT: (count + 1).toString(),
-      MSSV: `2012455${count}`,
-      NameStudent: `Nguyen Van A${count}`,
-      ClassSTD: `DHKHDL1${count}A `,
-      Email: `NguyenVan${count}@gmail.com`,
-    };
-    setDataSource([...dataSource, newData]);
-    setCount(count + 1);
-  };
-
-  const handleSave = (row) => {
-    const newData = [...dataSource];
-    const index = newData.findIndex((item) => row.key === item.key);
-
-    if (index > -1) {
-      const item = newData[index];
-      newData.splice(index, 1, { ...item, ...row });
-      setDataSource(newData);
-      setEditingKey("");
-    } else {
-      newData.push(row);
-      setDataSource(newData);
-      setEditingKey("");
+  const handleDelete = async (key) => {
+    const studentToDelete = dataSource.find((item) => item.key === key);
+    try {
+      const response = await DS_SinhVienApi.remove({
+        MaSinhVien: studentToDelete.MaSinhVien,
+      });
+      if (response.status === 200) {
+        const newData = dataSource.filter((item) => item.key !== key);
+        setDataSource(newData);
+        setEditingKey("");
+      }
+    } catch (error) {
+      console.error(error);
     }
   };
 
-  const components = {
-    body: {
-      row: EditableRow,
-      cell: EditableCell,
-    },
+  const handleSave = async (key, dataIndex, value) => {
+    const newData = [...dataSource];
+    const index = newData.findIndex((item) => key === item.key);
+
+    if (index > -1) {
+      newData[index][dataIndex] = value;
+      setDataSource(newData);
+      setEditingKey(""); // Kết thúc chỉnh sửa sau khi lưu
+
+      // Call the update API
+      try {
+        const response = await DS_SinhVienApi.update(newData[index]);
+        if (response.status !== 200) {
+          console.error("Failed to update data on the server");
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
   };
 
   const columns = [
@@ -153,97 +94,176 @@ const StudentList = () => {
       title: "STT",
       dataIndex: "STT",
       width: "4%",
-      align: "center",
-      editable: true,
     },
     {
-      title: "MSSV",
-      dataIndex: "MSSV",
-      width: "6%",
-      editable: true,
+      title: "MaSinhVien",
+      dataIndex: "MaSinhVien",
+      width: "8%",
+      render: (_, record) => {
+        const editable = isEditing(record);
+        return editable ? (
+          <EditableCell
+            value={record.MaSinhVien}
+            dataIndex="MaSinhVien"
+            record={record}
+            handleSave={handleSave}
+            editing={editable}
+          />
+        ) : (
+          <div>{record.MaSinhVien}</div>
+        );
+      },
     },
     {
-      title: "NameStudent",
-      dataIndex: "NameStudent",
-      width: "10%",
-      editable: true,
+      title: "HoVaTen",
+      dataIndex: "HoVaTen",
+      width: "20%",
+      render: (_, record) => {
+        const editable = isEditing(record);
+        return editable ? (
+          <EditableCell
+            value={record.HoVaTen}
+            dataIndex="HoVaTen"
+            record={record}
+            handleSave={handleSave}
+            editing={editable}
+          />
+        ) : (
+          <div>{record.HoVaTen}</div>
+        );
+      },
     },
     {
-      title: "ClassSTD",
-      dataIndex: "ClassSTD",
-      width: "10%",
-      editable: true,
+      title: "TenKhoa",
+      dataIndex: "TenKhoa",
+      width: "20%",
+      render: (_, record) => {
+        const editable = isEditing(record);
+        return editable ? (
+          <EditableCell
+            value={record.TenKhoa}
+            dataIndex="TenKhoa"
+            record={record}
+            handleSave={handleSave}
+            editing={editable}
+          />
+        ) : (
+          <div>{record.TenKhoa}</div>
+        );
+      },
     },
     {
       title: "Email",
       dataIndex: "Email",
-      width: "15%",
-      editable: true,
+      width: "30%",
+      render: (_, record) => {
+        const editable = isEditing(record);
+        return editable ? (
+          <EditableCell
+            value={record.Email}
+            dataIndex="Email"
+            record={record}
+            handleSave={handleSave}
+            editing={editable}
+          />
+        ) : (
+          <div>{record.Email}</div>
+        );
+      },
     },
     {
       title: "Operation",
       dataIndex: "operation",
-      width: "15%",
+      fixed: 'right',
+      width: "20%",
       render: (_, record) => {
         const editable = isEditing(record);
 
         return editable ? (
           <span>
-            <a onClick={() => save(record.key)} style={{ marginRight: 8 }}>
+            <Button type="primary" onClick={() => handleSave(record.key)}>
               Save
-            </a>
-            <Popconfirm
-              title="Sure to cancel?"
-              onConfirm={cancel}
-            >
+            </Button>
+            {/* <Button onClick={cancel}>Cancel</Button> */}
+            {/* <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
               <a>Cancel</a>
-            </Popconfirm>
+            </Popconfirm> */}
           </span>
         ) : (
           <span>
-            <a onClick={() => edit(record.key)}>Edit</a> |{" "}
+            <Button onClick={() => edit(record.key)}>Edit</Button>
             <Popconfirm
               title="Sure to delete?"
               onConfirm={() => handleDelete(record.key)}
             >
-              <a>Delete</a>
+              <Button>Delete</Button>
             </Popconfirm>
           </span>
         );
       },
     },
-  ].map((col) => ({
-    ...col,
-    onCell: (record) => ({
-      record,
-      editable: col.editable,
-      dataIndex: col.dataIndex,
-      title: col.title,
-      handleSave: handleSave,
-    }),
-  }));
+  ];
+
+  const EditableCell = ({ value, dataIndex, record, handleSave, editing }) => {
+    const [inputValue, setInputValue] = useState(value);
+
+    const handleChange = (e) => {
+      setInputValue(e.target.value);
+    };
+
+    const save = () => {
+      handleSave(record.key, dataIndex, inputValue);
+    };
+
+    return editing ? (
+      <Input
+        value={inputValue}
+        onChange={handleChange}
+        onPressEnter={save}
+        onBlur={save}
+      />
+    ) : (
+      <div>{value}</div>
+    );
+  };
 
   return (
     <div>
       <h1 style={{ textAlign: "center" }}>Student List</h1>
       <Button
-        onClick={handleAdd}
-        type="primary"
-        style={{
-          marginBottom: 16,
-          marginLeft: "20px",
+        onClick={async () => {
+          const count = dataSource.length;
+          const newData = {
+            key: count.toString(),
+            STT: (count + 1).toString(),
+            MaLopHoc: maLopHoc,
+            HoVaTen: `Nguyen Van A${count}`,
+            Email: `NguyenVan${count}@gmail.com`,
+            TenKhoa: `CNPM`,
+            SDT: "0902705024",
+            MaSinhVien: `SV201133${count}`,
+          };
+          try {
+            const response = await DS_SinhVienApi.add(newData);
+            if (response.status === 200) {
+              setDataSource([...dataSource, newData]);
+            }
+          } catch (error) {
+            console.error(error);
+          }
         }}
+        type="primary"
+        style={{ marginBottom: 16, marginLeft: 20 }}
       >
         Add a row
       </Button>
       <Table
-        components={components}
-        rowClassName={() => "editable-row"}
         bordered
         dataSource={dataSource}
         columns={columns}
+        pagination={{ position: ['bottomCenter'] }}
         style={{ marginRight: "250px", marginLeft: "20px" }}
-        scroll={{y: 600 }}
+        scroll={{ y: 920 }}
         pagination={false}
       />
     </div>

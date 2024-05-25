@@ -10,6 +10,7 @@ from student.models import Student
 import pandas as pd
 import io
 from sympy import sympify
+from django.db.models import Avg, Max, Min, Count, Q
 
 # Create your views here.
 class GetDanhSachDiem(APIView):
@@ -19,7 +20,7 @@ class GetDanhSachDiem(APIView):
     def get(self, request):
         token = request.auth
         MaGiangVien = token.user.MaGiangVien
-        MaLopHoc = request.data.get('MaLopHoc')
+        MaLopHoc = request.query_params.get('MaLopHoc')
         classes = Class_Student.objects.filter(MaLopHoc=MaLopHoc)
         classroom = Classroom.objects.get(MaLopHoc=MaLopHoc)
         if classroom.MaGiangVien.MaGiangVien != MaGiangVien:
@@ -57,23 +58,21 @@ class AddDiem(APIView):
             return Response({'message': 'You do not have permission to add score for this class!'}, status=403)
         
         scores = request.data.get('scores')  # Get list of scores from request data
-
+        students = Class_Student.objects.filter(MaLopHoc=MaLopHoc)  # Find students by MaLopHoc
+        classroom = Classroom.objects.get(MaLopHoc=MaLopHoc)
         existing_scores_students = []  # List to store students who already have scores
-
         for score in scores:
             MaSinhVien = score.get('MaSinhVien')
             TenThanhPhanDiem = score.get('TenThanhPhanDiem')
             Diem = score.get('Diem')
-
-            if Score.objects.filter(MaSinhVien=MaSinhVien, MaLopHoc=MaLopHoc, TenThanhPhanDiem=TenThanhPhanDiem).exists():
+            student = students.get(MaSinhVien=MaSinhVien).MaSinhVien  # Access the Student from the Class_Student
+            if Score.objects.filter(MaSinhVien=student, MaLopHoc=classroom, TenThanhPhanDiem=TenThanhPhanDiem).exists():
                 existing_scores_students.append(MaSinhVien)  # Add student to the list
                 continue  # Skip to the next score
-
-            Score.objects.create(MaSinhVien=MaSinhVien, MaLopHoc=MaLopHoc, TenThanhPhanDiem=TenThanhPhanDiem, Diem=Diem)
+            Score.objects.create(MaSinhVien=student, MaLopHoc=classroom, TenThanhPhanDiem=TenThanhPhanDiem, Diem=Diem)  # Use the Student instance
         
         if existing_scores_students:
             return Response({'message': f'The scores for students {existing_scores_students} already exist!'}, status=400)
-
         return Response({'message': 'Add scores successfully!'}, status=200)
 
 class UpdateDiem(APIView):
@@ -90,7 +89,7 @@ class UpdateDiem(APIView):
         scores = request.data.get('scores')  # Get list of scores from request data
 
         for score in scores:
-            MaSinhVien = score.get('MaSinhVien')
+            MaSinhVien = score.get('MaSinhVien') 
             TenThanhPhanDiem = score.get('TenThanhPhanDiem')
             Diem = score.get('Diem')
 
@@ -195,3 +194,47 @@ class CreateNewColumnByFormula(APIView):
             Score.objects.create(MaSinhVien=Student.objects.get(MaSinhVien=MaSinhVien), MaLopHoc=classroom, TenThanhPhanDiem=NewColumnName, Diem=scores[NewColumnName])
 
         return Response({'message': 'Create new column by formula successfully!'}, status=200)
+
+class GetStatistic(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(seft, request):
+        token = request.auth
+        MaGiangVien = token.user.MaGiangVien
+        MaLopHoc = request.query_params.get('MaLopHoc')
+        TenThanhPhanDiem = request.query_params.get('TenThanhPhanDiem')
+        try:
+            classroom = Classroom.objects.get(MaLopHoc=MaLopHoc)
+            if classroom.MaGiangVien.MaGiangVien != MaGiangVien:
+                return Response({'message': 'You do not have permission to create new column for this class!'}, status=403)
+        except Classroom.DoesNotExist:
+            return Response({'message': 'MaLopHoc is not exist!'}, status=400)
+        
+        scores = Score.objects.filter(MaLopHoc = MaLopHoc, TenThanhPhanDiem = TenThanhPhanDiem)
+        pass_scores = scores.filter(Diem__gte=5.0)
+        
+        aggregates = scores.aggregate(
+            Avg('Diem'),
+            Max('Diem'),
+            Min('Diem'),
+            total=Count('Diem'),
+            pass_total=Count('Diem', filter=Q(Diem__gte=5.0))
+        )
+        
+        average_score = aggregates['Diem__avg']
+        max_score = aggregates['Diem__max']
+        min_score = aggregates['Diem__min']
+        total_scores = aggregates['total']
+        total_pass_scores = aggregates['pass_total']
+
+        pass_rate = total_pass_scores / total_scores if total_scores else 0
+        
+        return Response({
+            'average_score': average_score,
+            'max_score': max_score,
+            'min_score': min_score,
+            'pass_rate': pass_rate,
+            'fail_rate': 1 - pass_rate,
+        })
+        

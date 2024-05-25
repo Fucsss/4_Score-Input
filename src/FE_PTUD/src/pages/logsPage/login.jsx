@@ -1,13 +1,20 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { RiEyeCloseLine, RiEyeLine } from "react-icons/ri";
-import axiosInstance from "../../configs/axios-conf";
+import userApi from "../../configs/userApi";
+import { useAuth } from "../../provider/authContext";
+
 function Login() {
   const [formData, setFormData] = useState({
-    email: "",
+    MaGiangVien: "",
     password: "",
   });
+  const navigate = useNavigate();
+  const { setToken, setUser } = useAuth();
   const [errors, setErrors] = useState({});
+  const [failLogin, setFailLogin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData({ ...formData, [name]: value });
@@ -21,29 +28,40 @@ function Login() {
 
   const handleFormSubmit = (event) => {
     event.preventDefault();
-    const { email, password } = formData;
-
+    const { MaGiangVien, password } = formData;
     const errors = {};
-    if (!email) {
-      errors.email = "Please enter your email address.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.email = "Please enter a valid email address.";
+    if (!MaGiangVien) {
+      errors.MaGiangVien = "Please enter your teacher ID.";
     }
     if (!password) {
       errors.password = "Please enter a password.";
     }
 
     if (Object.keys(errors).length === 0) {
-      axiosInstance
-        .post("/auth/login", {
-          email: email,
-          password: password,
-        })
+      const userInfo = {
+        MaGiangVien: MaGiangVien,
+        password: password,
+      };
+
+      console.log(userInfo);
+
+      userApi
+        .login(userInfo)
         .then((response) => {
+          console.log(response.data.message);
           console.log(response);
+          const accessToken = response.data.token;
+          setToken(accessToken);
+          localStorage.setItem("token", accessToken);
+          // localStorage.setItem("user", JSON.stringify(response.data));
+          // setUser(JSON.stringify(response.data));
+          navigate("/home");
+          // alert(response.data.message);
+          //console.log(response.data.message);
         })
         .catch((errors) => {
           console.log(errors);
+          setFailLogin(true);
         });
     } else {
       setErrors(errors);
@@ -54,16 +72,18 @@ function Login() {
     <div className="form-container sign-in">
       <form onSubmit={handleFormSubmit}>
         <h1>Sign In</h1>
-        <span>or use your email and password</span>
+        <span>or use your teacher ID and password</span>
         <input
-          type="email"
-          placeholder="Email"
-          name="email"
-          value={formData.email}
+          type="text"
+          placeholder="Teacher ID"
+          name="MaGiangVien"
+          value={formData.MaGiangVien}
           onChange={handleChange}
-          className={errors.email ? "error" : ""}
+          className={errors.MaGiangVien ? "error" : ""}
         />
-        {errors.email && <p className="error-message">{errors.email}</p>}
+        {errors.MaGiangVien && (
+          <p className="error-message">{errors.MaGiangVien}</p>
+        )}
         <div className="pwStyle" style={{ position: "relative" }}>
           <input
             type={showPassword ? "text" : "password"}
@@ -88,6 +108,9 @@ function Login() {
         </div>
         {errors.password && <p className="error-message">{errors.password}</p>}
         <a href="#">Forget Your Password?</a>
+        {failLogin && (
+          <p className="error-message">Email or password is incorrect!</p>
+        )}
         <button type="submit">Sign In</button>
       </form>
     </div>
