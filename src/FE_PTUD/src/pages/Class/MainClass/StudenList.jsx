@@ -263,8 +263,8 @@ const StudentList = () => {
         columns={columns}
         pagination={{ position: ['bottomCenter'] }}
         style={{ marginRight: "250px", marginLeft: "20px" }}
-        scroll={{ y: 565 }}
-        
+        scroll={{ y: 920 }}
+        pagination={false}
       />
     </div>
   );
