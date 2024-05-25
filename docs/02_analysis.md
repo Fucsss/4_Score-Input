@@ -16,18 +16,18 @@ Chỉ ra được tài liệu này dùng cho đối tượng nào?
 
 #### 2.2.1 Đặc tả Actors
 
-- Actor 1: mô tả...
-- Actor 2: mô tả...
-- ...
+- Giảng viên: Người sẽ thêm, sửa, xoá, cập nhật điểm cho sinh viên. Bên cạnh đó họ có thể tạo mới, các lớp học.
 
 #### 2.2.2 Đặc tả Use-cases
 
 - Danh sách các use-cases:
-    - UC01: đăng nhập (Mô tả:...)
-    - UC02: thống kê (Mô tả:...)
-    - UC03: đăng bài viết (Mô tả:...)
-    - UC04:  (Mô tả:...)
-    - ... 
+    - UC01: đăng nhập (Mô tả: Người dùng nhập thông tin đăng nhập để truy cập hệ thống)
+    - UC02: đăng kí (Mô tả: Người dùng nhập thông tin cần thiết để truy cập vào hệ thống)
+    - UC03: đăng xuất: (Mô tả: Người dùng đăng xuất tài khoảng ra khỏi phiên sử dụng hiện tại). Điều kiện đã đăng nhập.
+    - UC04: tạo mới lớp học (Mô tả: Giảng viên có thể tạo mới lớp học trong hệ thống). Điều kiện đã đăng nhập
+    - UC06: thêm Sinh Viên (Mô tả: Người dùng thêm, sửa, xoá sinh viên của 1 lớp) Điều kiện cần phải đăng nhập, tạo lớp trước.
+    - UC07: sửa, xoá Sinh Viên (Mô tả: Người dùng xoá, sửa sinh viên của 1 lớp). Điều kiện cần phải đăng nhập, Sinh viên đó phải được tạo trước.
+
 - Liệt kê các use-cases theo actor: (LƯU Ý: nếu phần này các chức năng thực hiện khác nhau ở mỗi actor thì ghi rõ các khác nhau đó)
     - Actor 1:
         - UC01: đăng nhập
