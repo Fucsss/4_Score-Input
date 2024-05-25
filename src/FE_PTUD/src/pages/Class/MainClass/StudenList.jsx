@@ -174,6 +174,7 @@ const StudentList = () => {
     {
       title: "Operation",
       dataIndex: "operation",
+      fixed: 'right',
       width: "20%",
       render: (_, record) => {
         const editable = isEditing(record);
@@ -260,10 +261,10 @@ const StudentList = () => {
         bordered
         dataSource={dataSource}
         columns={columns}
-        pagination={false}
+        pagination={{ position: ['bottomCenter'] }}
         style={{ marginRight: "250px", marginLeft: "20px" }}
         scroll={{ y: 920 }}
-        
+        pagination={false}
       />
     </div>
   );

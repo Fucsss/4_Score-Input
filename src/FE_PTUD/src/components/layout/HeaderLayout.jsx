@@ -44,6 +44,10 @@ const HeaderLayout = () => {
     }
   };
 
+  const handleHomeClick = () => {
+    window.location.replace("/home"); // Redirect to "/home" when clicking on the "ClassRoom" icon
+  };
+
   const avatarMenu = (
     <Menu onClick={handleMenuClick}>
       {[
@@ -94,12 +98,13 @@ const HeaderLayout = () => {
   return (
     <Header style={headerStyle}>
       <div style={iconGroupStyle}>
-        <GiWhiteBook style={{ fontSize: "45px", cursor: "pointer" }}  onClick={handleHomeIconClick} />
+        <GiWhiteBook style={{ fontSize: "45px" }} />
         ClassRoom
       </div>
 
       <div style={iconGroupStyle}>
-        <HomeOutlined
+        <HomeOutlined style={{ fontSize: "35px", marginRight: "46px" }} />
+        <BellOutlined
           style={{ fontSize: "35px", marginRight: "46px" }}
           onClick={handleHomeIconClick}
         />

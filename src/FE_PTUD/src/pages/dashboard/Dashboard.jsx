@@ -1,11 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { Card, Typography, Modal, Form, Input, Button, Select } from "antd";
-import { PlusSquareOutlined } from "@ant-design/icons";
-import LopHocApi from "../../configs/LopHocApi.js";
-import MonHocApi from "../../configs/MonHocApi.jsx";
-import { Link } from "react-router-dom";
-import { useMaLopHoc } from "../../provider/authContext.jsx";
-
+import React from "react";
+import { Card, Typography } from "antd";
+import Faker from "../../data/index.jsx";
 
 const linkStyle = {
   textDecoration: "none",
@@ -16,122 +11,6 @@ const linkStyle = {
 };
 
 const Dashboard = () => {
-  const [isDBModalVisible, setIsDBModalVisible] = useState(false);
-  const [form] = Form.useForm();
-  const [classes, setClasses] = useState([]);
-  const [subjects, setSubjects] = useState([]);
-  const { maLopHoc, setMaLopHoc } = useMaLopHoc();
-
-  const handleLinkClick = (maLopHoc) => {
-    setMaLopHoc(maLopHoc);
-    localStorage.setItem("maLopHoc", maLopHoc);
-  };
-
-
-  const handleModalOpen = () => {
-    setIsDBModalVisible(true);
-  };
-
-  const handleModalCancel = () => {
-    setIsDBModalVisible(false);
-  };
-
-  const onFinish = async (values) => {
-    console.log("Received values:", values);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Token is not available in local storage");
-      }
-      const response = await LopHocApi.add(values, {
-        headers: {
-            Authorization: `Token ${token}`,
-        },
-    });
-      console.log(response);
-      setClasses([...classes, values]);
-      form.resetFields();
-      setIsDBModalVisible(false);
-    } catch (error) {
-      console.error(error);
-      if (error.response && error.response.status === 401) {
-        // Handle 401 error here by prompting user to login again or refresh the token
-      }
-    }
-  };
-  const validatePositiveNumber = (rule, value) => {
-    return new Promise((resolve, reject) => {
-      if (value && value <= 0) {
-        reject("Vui lòng nhập số dương!");
-      } else {
-        resolve();
-      }
-    });
-  };
-
-  const onGenderChange = (value) => {
-    const selectedSubjects = subjects.find(
-      (subject) => subject.TenMonHoc === value
-    );
-    if (selectedSubjects) {
-      form.setFieldsValue({
-        SoTinChi: selectedSubjects.SoTinChi,
-        MaMonHoc: selectedSubjects.MaMonHoc,
-      });
-    }
-  };
-
-  useEffect(() => {
-    const fetchLopHocs = async () => {
-      const token = localStorage.getItem("token");
-      console.log(`Token: ${token}`);
-
-      try {
-        const response = await LopHocApi.getAll({
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        });
-
-        const LopHocList = JSON.parse(response.data);
-        console.log(LopHocList);
-        setClasses(LopHocList.classes); // Gán dữ liệu từ API vào state classes
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    fetchLopHocs();
-  }, []);
-
-  useEffect(() => {
-    const fetchMonHocs = async () => {
-      const token = localStorage.getItem("token");
-      console.log(`Token: ${token}`);
-  
-      try {
-        const response = await MonHocApi.getAll({
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        });
-  
-        const MonHocList = JSON.parse(response.data);
-        console.log(MonHocList);
-        if (Array.isArray(MonHocList.subjects)) {
-          setSubjects(MonHocList.subjects); // Set subjects to the array under the 'subjects' property
-        } else {
-          console.error("MonHocList.subjects is not an array:", MonHocList.subjects);
-          // Handle the case where MonHocList.subjects is not an array
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    fetchMonHocs();
-  }, []);
-  
-
-
   return (
     <div
       style={{
@@ -164,13 +43,9 @@ const Dashboard = () => {
           <Card
             key={index}
             title={
-              <Link 
-                to={`/class#StudentList?MaLopHoc=${classItem.MaLopHoc}`} 
-                style={linkStyle}
-                onClick={() => handleLinkClick(classItem.MaLopHoc)}
-              >
-                {classItem.TenMonHoc}
-              </Link>
+              <a href="#" style={linkStyle}>
+                {classItem.nameClass}
+              </a>
             }
             style={{
               margin: "20px",
