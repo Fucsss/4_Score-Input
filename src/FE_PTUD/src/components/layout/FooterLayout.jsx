@@ -10,7 +10,7 @@ const footerStyle = {
 
 const FooterLayout = () => {
   return (
-    <Footer style={footerStyle}>ClassRoom ©{new Date().getFullYear()} Created by NguyenSinh1902</Footer>
+    <Footer style={footerStyle}>ClassRoom ©{new Date().getFullYear()}</Footer>
   )
 }
 
