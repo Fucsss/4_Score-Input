@@ -259,10 +259,16 @@ class DownloadBangDiem(APIView):
         if not scores.exists():
             return Response({'message': 'No scores found for this class!'}, status=404)
 
+        # Create a set of all possible score components
+        score_components = set(scores.values_list('TenThanhPhanDiem', flat=True))
+        
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename="bang_diem_{MaLopHoc}.csv"'
         writer = csv.writer(response)
-        writer.writerow(['MaSinhVien', 'HoVaTen', 'TK', 'TH', 'GK', 'CK', 'DTB', 'Tong Ket'])
+
+        # Write the header row
+        header = ['MaSinhVien', 'HoVaTen'] + sorted(score_components)
+        writer.writerow(header)
 
         student_scores = {}
         for score in scores:
@@ -270,25 +276,16 @@ class DownloadBangDiem(APIView):
             if MaSinhVien not in student_scores:
                 student_scores[MaSinhVien] = {
                     'HoVaTen': score.MaSinhVien.HoVaTen,
-                    'TK': None,
-                    'TH': None,
-                    'GK': None,
-                    'CK': None,
-                    'DTB': None,
-                    'Tong Ket': None
                 }
+                for component in score_components:
+                    student_scores[MaSinhVien][component] = None
             student_scores[MaSinhVien][score.TenThanhPhanDiem] = score.Diem
 
         for MaSinhVien, score_data in student_scores.items():
-            writer.writerow([
+            row = [
                 MaSinhVien,
                 score_data['HoVaTen'],
-                score_data.get('TK', ''),
-                score_data.get('TH', ''),
-                score_data.get('GK', ''),
-                score_data.get('CK', ''),
-                score_data.get('DTB', ''),
-                score_data.get('TongKet', '')
-            ])
+            ] + [score_data.get(component, '') for component in sorted(score_components)]
+            writer.writerow(row)
 
         return response
