@@ -4,10 +4,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from .models import Class_Student, Student
 from classroom.models import Classroom
-import json
 from django.db import transaction
 import pandas as pd 
-import io
+from django.http import HttpResponse
+import csv
 
 # Create your views here.
 class GetDanhSachSinhVien(APIView):
@@ -15,12 +15,11 @@ class GetDanhSachSinhVien(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        MaLopHoc = request.query_params.get('MaLopHoc')
-
+        MaLopHoc = request.GET.get('MaLopHoc')
+        
         if MaLopHoc is None:
             return Response({'message': 'Please provide a valid MaLopHoc!'}, status=400)
 
-        # Get list of students associated with the specified classroom
         class_students = Class_Student.objects.filter(MaLopHoc=MaLopHoc)
         responses = []
         for c in class_students:
@@ -31,10 +30,8 @@ class GetDanhSachSinhVien(APIView):
                 'Email': c.MaSinhVien.Email,
                 'SDT': c.MaSinhVien.SDT
             })
-
-        # Return response data as JSON
+        
         return Response({'class_students': responses}, status=200)
-
 
 class AddSinhVien(APIView):
     authentication_classes = [TokenAuthentication]
@@ -194,13 +191,11 @@ class AddSinhVienByFile(APIView):
                 if MaSinhVien is None or HoVaTen is None:
                     return Response({'message': 'MaSinhVien and HoVaTen are required fields.'}, status=400)
 
-                # Create or update the Student object
                 student_instance, created = Student.objects.update_or_create(
                     MaSinhVien=MaSinhVien,
                     defaults={'HoVaTen': HoVaTen, 'Email': Email, 'SDT': SDT, 'TenKhoa': TenKhoa}
                 )
 
-                # Check if the student is already associated with the classroom
                 if not Class_Student.objects.filter(MaSinhVien=student_instance, MaLopHoc=classroom).exists():
                     Class_Student.objects.create(MaSinhVien=student_instance, MaLopHoc=classroom)
 
@@ -210,3 +205,45 @@ class AddSinhVienByFile(APIView):
             return Response({'message': 'Invalid CSV file format!'}, status=400)
         except Exception as e:
             return Response({'message': str(e)}, status=500)
+        
+### Download file csv list student:
+class DownloadDanhSachSinhVien(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        MaLopHoc = request.query_params.get('MaLopHoc')
+        
+        if MaLopHoc is None:
+            return Response({'message': 'Please provide a valid MaLopHoc!'}, status=400)
+
+        try:
+            class_students = Class_Student.objects.filter(MaLopHoc=MaLopHoc)
+            if not class_students.exists():
+                return Response({'message': 'No students found for this class!'}, status=404)
+
+            # Prepare the response
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename="danh_sach_sinh_vien_{MaLopHoc}.csv"'
+
+            # Create a CSV writer
+            writer = csv.writer(response)
+            writer.writerow(['MaSinhVien', 'HoVaTen', 'TenKhoa', 'Email', 'SDT'])  # Header row
+
+            for student in class_students:
+                writer.writerow([
+                    student.MaSinhVien.MaSinhVien,
+                    student.MaSinhVien.HoVaTen,
+                    student.MaSinhVien.TenKhoa,
+                    student.MaSinhVien.Email,
+                    student.MaSinhVien.SDT
+                ])
+            
+            return response
+
+        except Classroom.DoesNotExist:
+            return Response({'message': 'Classroom does not exist!'}, status=404)
+
+        except Exception as e:
+            return Response({'message': str(e)}, status=500)
+        
