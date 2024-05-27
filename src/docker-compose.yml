@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  backend:
+    build:
+      context: ./BE_PTUD
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./BE_PTUD/db.sqlite3:/app/db.sqlite3
+
+  frontend:
+    build:
+      context: ./FE_PTUD
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./FE_PTUD:/app
