@@ -22,13 +22,32 @@ Hướng dẫn cài đặt và chạy sau khi pull project từ github về (Lư
 
 ## TRÁCH NHIỆM
 
-- Thành viên 1:
-    - trách nhiệm 1
-    - trách nhiệm 2
-- Thành viên 2
-    - trách nhiệm 1
-    - trách nhiệm 2
-- ...
+- Võ Hoàng Phúc:
+    - Quản lý đăng nhâp
+    - Quản lý lớp học
+    - Quản lý môn học
+    - Nhập điểm
+      
+- Tăng Quang Nhật Nam:
+    - Quản lý sinh viên
+    - Nhập điểm
+    - Upload điểm bằng File
+    - Upload sinh viên bằng file
+    - Download file
+      
+- Lê Nguyên Sinh:
+    - Dasboard
+    - Transcript
+    - Register
+    - Login
+    - Logout
+      
+ - Trương Thành Thảo:
+    - Layout home
+    - Layout class
+    - Student List
+    - Statistical
+
 
 
 ---
