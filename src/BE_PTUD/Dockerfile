@@ -5,8 +5,7 @@ FROM python:3.9-alpine
 WORKDIR /app
 
 # Cài đặt SQLite3 sử dụng apk
-RUN apk update && \
-    apk add --no-cache sqlite
+RUN apk update && apk add --no-cache sqlite
 
 # Sao chép các file cần thiết vào thư mục làm việc
 COPY . /app/
@@ -17,8 +16,11 @@ RUN python -m venv /venv
 # Cài đặt các phụ thuộc của Python
 RUN /venv/bin/pip install --no-cache-dir -r requirements.txt
 
+# Thiết lập biến môi trường
+ENV PYTHONPATH=/app/BE_PTUD
+
 # Chạy các migration để cập nhật cơ sở dữ liệu
-RUN /venv/bin/python manage.py migrate
+RUN /venv/bin/python /app/manage.py migrate
 
 # Lệnh để chạy ứng dụng
-CMD ["/venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/venv/bin/uvicorn", "BE_PTUD.asgi:application", "--host", "0.0.0.0", "--port", "8000"]
