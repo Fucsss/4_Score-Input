@@ -2,12 +2,10 @@ import React, { useState } from "react";
 import { Avatar, Layout, Dropdown, Menu, Modal } from "antd";
 import { BellOutlined, HomeOutlined, UserOutlined } from "@ant-design/icons";
 import { GiWhiteBook } from "react-icons/gi";
-import { IoLogOutOutline } from "react-icons/io5"; // Import the logout icon
+import { IoLogOutOutline } from "react-icons/io5";
 import { useAuth } from "../../provider/authContext";
 const { Header } = Layout;
 import { useNavigate } from "react-router-dom";
-
-
 
 const headerStyle = {
   display: "flex",
@@ -25,19 +23,12 @@ const iconGroupStyle = {
   alignItems: "center",
 };
 
-
-
 const HeaderLayout = () => {
-  const [isModalVisible, setIsModalVisible] = useState(false);
   let { logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleBellIconClick = () => {
-    setIsModalVisible(true);
-  };
-
-  const handleModalCancel = () => {
-    setIsModalVisible(false);
+  const handleHomeIconClick = () => {
+    navigate("/home");
   };
 
   const handleMenuClick = (e) => {
@@ -70,14 +61,14 @@ const HeaderLayout = () => {
         },
         {
           type: "divider",
-          key: "divider", 
-          style: { borderBottom: "1px solid gray" }, 
+          key: "divider",
+          style: { borderBottom: "1px solid gray" },
         },
         {
           label: "Đăng xuất",
           key: "4",
-          style: { color: "red" }, 
-          icon: <IoLogOutOutline style={{ marginRight: "8px" }} />, 
+          style: { color: "red" },
+          icon: <IoLogOutOutline style={{ marginRight: "8px" }} />,
         },
       ].map((item) =>
         item.type === "divider" ? (
@@ -92,31 +83,33 @@ const HeaderLayout = () => {
     </Menu>
   );
 
+  const bellMenu = (
+    <Menu>
+      <Menu.Item key="1">Notification 1</Menu.Item>
+      <Menu.Item key="2">Notification 2</Menu.Item>
+      <Menu.Item key="3">Notification 3</Menu.Item>
+    </Menu>
+  );
+
   return (
     <Header style={headerStyle}>
       <div style={iconGroupStyle}>
-        <GiWhiteBook style={{ fontSize: "45px" }} />
+        <GiWhiteBook style={{ fontSize: "45px", cursor: "pointer" }}  onClick={handleHomeIconClick} />
         ClassRoom
       </div>
 
       <div style={iconGroupStyle}>
-        <HomeOutlined style={{ fontSize: "35px", marginRight: "46px" }} />
-        <BellOutlined
+        <HomeOutlined
           style={{ fontSize: "35px", marginRight: "46px" }}
-          onClick={handleBellIconClick}
+          onClick={handleHomeIconClick}
         />
+        <Dropdown overlay={bellMenu} trigger={["click"]}>
+          <BellOutlined style={{ fontSize: "35px", marginRight: "46px" }} />
+        </Dropdown>
         <Dropdown overlay={avatarMenu} trigger={["click"]}>
           <UserOutlined style={{ fontSize: "35px" }} />
         </Dropdown>
       </div>
-      <Modal
-        title="Notification"
-        visible={isModalVisible}
-        onCancel={handleModalCancel}
-        footer={null}
-      >
-        {/* Content of the modal goes here */}
-      </Modal>
     </Header>
   );
 };

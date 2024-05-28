@@ -3,7 +3,7 @@ import { Menu } from "antd";
 import { Header } from "antd/lib/layout/layout";
 
 export const setChoose = (key) => {
-  switch(key) {
+  switch (key) {
     case "1":
       window.location.replace("#StudentList");
       break;
@@ -32,7 +32,7 @@ const HeaderClass = () => {
         position: "sticky",
         top: 0,
         zIndex: 1,
-        width: "100vw",
+        width: "100%",
         display: "flex",
         alignItems: "center",
         padding: 0,

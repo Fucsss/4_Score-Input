@@ -5,13 +5,13 @@ import Transcript from "./MainClass/Transcript";
 import Statistical from "./MainClass/Statistical";
 
 const MainClass = () => {
-  
+
   const [componentToRender, setComponentToRender] = useState(<StudenList />);
 
   useEffect(() => {
     const renderComponent = () => {
       const routeHash = window.location.hash.substr(1);
-      switch(routeHash){
+      switch (routeHash) {
         case "StudentList":
           setComponentToRender(<StudenList />);
           break;
@@ -37,7 +37,7 @@ const MainClass = () => {
   }, []);
 
   return (
-    <div>
+    <div style={{ overflow: "auto", flex: 1, }}>
       <HeaderClass />
       {componentToRender}
     </div>

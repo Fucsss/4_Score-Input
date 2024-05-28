@@ -1,53 +1,106 @@
+import React, { useState, useEffect } from "react";
+import { Button, Input, Popconfirm, Table, Form } from "antd";
+import { useMaLopHoc } from "../../../provider/authContext";
+import DS_SinhVienApi from "../../../configs/DS_SinhVienApi";
+import { fetchDSSV } from "./fetchDSSV";
+import { render } from "react-dom";
+import { CSVDownload, CSVLink } from "react-csv";
+import { upload } from "../../../configs/upload";
 
-import React, { useState } from "react";
-import { Button, Input, Popconfirm, Table } from "antd";
+const EditableCell = ({
+  title,
+  value,
+  dataIndex,
+  editing,
+}) => {
+
+  return editing ? (
+    <Form.Item
+      name={dataIndex}
+      style={{ margin: 0 }}
+      rules={[
+        {
+          required: true,
+          message: `Please input ${title}!`,
+        },
+      ]}
+    >
+      <Input
+      />
+    </Form.Item>
+  ) : (
+    <div>{value}</div>
+  );
+};
 
 const StudentList = () => {
-  const [dataSource, setDataSource] = useState([
-    {
-      key: "0",
-      STT: "1",
-      MSSV: "20124551",
-      NameStudent: "Nguyen Van A1",
-      ClassSTD: "DHKHDL16A",
-      Email: "NguyenVanA1@gmail.com",
-    },
-    {
-      key: "1",
-      STT: "2",
-      MSSV: "20124552",
-      NameStudent: "Nguyen Van A2",
-      ClassSTD: "DHKHDL17A",
-      Email: "NguyenVanA2@gmail.com",
-    },
-  ]);
+  const { maLopHoc } = useMaLopHoc();
 
+  const [dataSource, setDataSource] = useState([]);
   const [editingKey, setEditingKey] = useState("");
+  const [form] = Form.useForm();
+  const [csv, setCSV] = useState([])
+  const [f, setF] = useState(false)
 
   const isEditing = (record) => record.key === editingKey;
 
   const edit = (key) => {
     setEditingKey(key);
+    form.setFieldsValue({
+      MaSinhVien: '',
+      HoVaTen: '',
+      TenKhoa: '',
+      Email: '',
+      ...dataSource.find((item) => item.key === key),
+    });
   };
 
   const cancel = () => {
     setEditingKey("");
   };
 
-  const handleDelete = (key) => {
-    const newData = dataSource.filter((item) => item.key !== key);
-    setDataSource(newData);
-    setEditingKey(""); // Đảm bảo kết thúc chỉnh sửa nếu dòng đang được chỉnh sửa bị xóa
+  const handleDelete = async (key) => {
+    const studentToDelete = dataSource.find((item) => item.key === key);
+    try {
+      const response = await DS_SinhVienApi.remove({
+        MaSinhVien: studentToDelete.MaSinhVien,
+      });
+      if (response.status === 200) {
+        const newData = dataSource.filter((item) => item.key !== key);
+        setDataSource(newData);
+        setEditingKey("");
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleSave = (key, dataIndex, value) => {
-    const newData = [...dataSource];
-    const index = newData.findIndex((item) => key === item.key);
+  const handleSave = async (data) => {
+    try {
+      await form.validateFields();
 
-    if (index > -1) {
-      newData[index][dataIndex] = value;
-      setDataSource(newData);
-      setEditingKey(""); // Kết thúc chỉnh sửa sau khi lưu
+      const newData = dataSource.map(d => {
+        if (d.key === data.key) {
+          return data
+        }
+
+        return d
+      })
+      setDataSource([...newData])
+      setEditingKey("");
+
+      // Call the update API
+      try {
+        const response = await DS_SinhVienApi.update(data);
+        if (response.status !== 200) {
+          console.error("Failed to update data on the server");
+        }
+      } catch (error) {
+        console.error(error);
+      }
+
+    } catch (errInfo) {
+      console.log("Validate Failed:", errInfo);
     }
   };
 
@@ -56,62 +109,61 @@ const StudentList = () => {
       title: "STT",
       dataIndex: "STT",
       width: "4%",
-      
+      render: (_, record) => {
+        return <Form.Item name={"key"} style={{ margin: 0, textAlign: "center" }}>{Number(record.key) + 1}</Form.Item>
+      }
     },
     {
-      title: "MSSV",
-      dataIndex: "MSSV",
-      width: "6%",
+      title: "Ma Sinh Vien",
+      dataIndex: "MaSinhVien",
+      width: "15%",
       render: (_, record) => {
         const editable = isEditing(record);
         return editable ? (
           <EditableCell
-            value={record.MSSV}
-            dataIndex="MSSV"
-            record={record}
-            handleSave={handleSave}
+            title="MaSinhVien"
+            value={record.MaSinhVien}
+            dataIndex="MaSinhVien"
             editing={editable}
           />
         ) : (
-          <div>{record.MSSV}</div>
+          <div>{record.MaSinhVien}</div>
         );
       },
     },
     {
-      title: "NameStudent",
-      dataIndex: "NameStudent",
+      title: "Ho Va Ten",
+      dataIndex: "HoVaTen",
       width: "20%",
       render: (_, record) => {
         const editable = isEditing(record);
         return editable ? (
           <EditableCell
-            value={record.NameStudent}
-            dataIndex="NameStudent"
-            record={record}
-            handleSave={handleSave}
+            title="HoVaTen"
+            value={record.HoVaTen}
+            dataIndex="HoVaTen"
             editing={editable}
           />
         ) : (
-          <div>{record.NameStudent}</div>
+          <div>{record.HoVaTen}</div>
         );
       },
     },
     {
-      title: "ClassSTD",
-      dataIndex: "ClassSTD",
+      title: "Ten Khoa",
+      dataIndex: "TenKhoa",
       width: "20%",
       render: (_, record) => {
         const editable = isEditing(record);
         return editable ? (
           <EditableCell
-            value={record.ClassSTD}
-            dataIndex="ClassSTD"
-            record={record}
-            handleSave={handleSave}
+            title="TenKhoa"
+            value={record.TenKhoa}
+            dataIndex="TenKhoa"
             editing={editable}
           />
         ) : (
-          <div>{record.ClassSTD}</div>
+          <div>{record.TenKhoa}</div>
         );
       },
     },
@@ -123,10 +175,9 @@ const StudentList = () => {
         const editable = isEditing(record);
         return editable ? (
           <EditableCell
+            title="Email"
             value={record.Email}
             dataIndex="Email"
-            record={record}
-            handleSave={handleSave}
             editing={editable}
           />
         ) : (
@@ -142,14 +193,18 @@ const StudentList = () => {
         const editable = isEditing(record);
 
         return editable ? (
-          <span>
-            <Button type="primary" onClick={() => handleSave(record.key)}>Save</Button>
-            <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
-              <Button>Cancel</Button>
-            </Popconfirm>
+          <span style={{ display: 'flex', gap: "10px" }}>
+            <Form.Item style={{ margin: 0 }}>
+              <Button type="primary" htmlType="submit"
+              >
+                Save
+              </Button>
+            </Form.Item>
+
+            <Button onClick={cancel}>Cancel</Button>
           </span>
         ) : (
-          <span>
+          <span style={{ display: 'flex', gap: "10px" }}>
             <Button onClick={() => edit(record.key)}>Edit</Button>
             <Popconfirm
               title="Sure to delete?"
@@ -163,53 +218,103 @@ const StudentList = () => {
     },
   ];
 
-  const EditableCell = ({ value, dataIndex, record, handleSave, editing }) => {
-    const [inputValue, setInputValue] = useState(value);
+  const getCSVFile = () => {
+    const data = dataSource.map(d => {
+      return [d.STT, d.MaSinhVien, d.HoVaTen, d.TenKhoa, d.Email]
+    })
 
-    const handleChange = (e) => {
-      setInputValue(e.target.value);
-    };
 
-    const save = () => {
-      handleSave(record.key, dataIndex, inputValue);
-    };
+    return [["STT", "MaSinhVien", "HoVaTen", "TenKhoa", "Email"], ...data]
+  }
 
-    return editing ? (
-      <Input value={inputValue} onChange={handleChange} onPressEnter={save} onBlur={save} />
-    ) : (
-      <div>{value}</div>
-    );
-  };
+  const handleUpload = async (e) => {
+    const file = e.target.files[0]
+    try {
+      await upload(file, maLopHoc)
+      setF(!f)
+    } catch (error) {
+      console.log(error)
+    } finally {
+      e.target.value = null
+    }
+  }
+
+  useEffect(() => {
+    fetchDSSV(maLopHoc, (response) => {
+      setDataSource(
+        response.class_students.map((student, index) => ({
+          key: index.toString(),
+          STT: (index + 1).toString(),
+          MaSinhVien: student.MaSinhVien,
+          HoVaTen: student.HoVaTen,
+          TenKhoa: student.TenKhoa,
+          Email: student.Email,
+        }))
+      );
+    });
+  }, [maLopHoc, f]);
+
+  useEffect(() => {
+    const data = getCSVFile()
+    setCSV(data)
+  }, [dataSource])
+
 
   return (
-    <div>
-      <h1 style={{ textAlign: "center" }}>Student List</h1>
-      <Button
-        onClick={() => {
-          const count = dataSource.length;
-          const newData = {
-            key: count.toString(),
-            STT: (count + 1).toString(),
-            MSSV: `2012455${count}`,
-            NameStudent: `Nguyen Van A${count}`,
-            ClassSTD: `DHKHDL1${count}A`,
-            Email: `NguyenVan${count}@gmail.com`,
-          };
-          setDataSource([...dataSource, newData]);
-        }}
-        type="primary"
-        style={{ marginBottom: 16, marginLeft: 20 }}
-      >
-        Add a row
-      </Button>
-      <Table
-        bordered
-        dataSource={dataSource}
-        columns={columns}
-        pagination={false}
-        style={{ marginRight: "250px", marginLeft: "20px" }}
-        scroll={{ y: 920 }}
-      />
+    <div style={{ marginLeft: "30px" }}>
+      <h1 style={{ textAlign: "center", marginTop: "20px" }}>Student List</h1>
+      <div style={{ display: "flex", gap: "10px" }}>
+        <Button
+          onClick={async () => {
+            const count = dataSource.length;
+            const newData = {
+              key: count.toString(),
+              STT: (count + 1).toString(),
+              MaLopHoc: maLopHoc,
+              HoVaTen: `Nguyen Van A${count}`,
+              Email: `NguyenVan${count}@gmail.com`,
+              TenKhoa: `CNPM`,
+              SDT: "0902705024",
+              MaSinhVien: `SV201133${count}`,
+            };
+            try {
+              const response = await DS_SinhVienApi.add(newData);
+              if (response.status === 200) {
+                setDataSource([...dataSource, newData]);
+              }
+            } catch (error) {
+              console.error(error);
+            }
+          }}
+          type="primary"
+          style={{ marginBottom: 16 }}
+        >
+          Add a row
+        </Button>
+        <Button type="primary" style={{ padding: 0 }}>
+          <label htmlFor={"fileSelect"} style={{ margin: "4px 15px" }}>Upload</label>
+          <input onChange={handleUpload} hidden id="fileSelect" type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />
+        </Button>
+        <Button type="primary">
+          <CSVLink
+            target="_blank"
+            filename={"student_list.csv"}
+            data={csv}
+          > Download</CSVLink>
+        </Button>
+      </div>
+
+      <Form form={form} onFinish={(data) => {
+        handleSave(data)
+      }}>
+        <Table
+          bordered
+          dataSource={dataSource}
+          columns={columns}
+          pagination={false}
+          style={{ marginRight: "50px" }}
+        />
+      </Form>
     </div>
   );
 };

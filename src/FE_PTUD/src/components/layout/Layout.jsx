@@ -9,7 +9,7 @@ const layoutStyle = {
   overflow: 'hidden',
   width: '100vw',
   height: '100vh',
-  
+
 };
 
 function MainLayout() {
@@ -17,8 +17,10 @@ function MainLayout() {
     <Layout style={layoutStyle}>
       <HeaderLayout />
       <Layout>
-        <SiderLayout />
-        <Outlet />
+        <div style={{ display: 'flex', width: "100vw" }}>
+          <SiderLayout />
+          <Outlet />
+        </div>
       </Layout>
       <FooterLayout />
     </Layout>
