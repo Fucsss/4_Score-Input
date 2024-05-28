@@ -1,210 +1,442 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Button, Input, Popconfirm, Table, Modal, Form, message, Upload, Select } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
+import { Button, Form, Input, Table, Modal, Select, Checkbox } from "antd";
+import { CSVLink } from "react-csv";
+import { useMaLopHoc } from "../../../provider/authContext";
+import { useGetStudents } from "../../service/student";
+import { useGetScore, useUpdateFormula, useUpdateScore } from "../../service/score";
+import { useDeleteColumn, useRenameColumn } from "../../service/column";
 
-const { Option } = Select;
+const EditableCell = ({
+  title,
+  value,
+  dataIndex,
+  editing,
+}) => {
+  return editing ? (
+    <Form.Item
+      name={dataIndex}
+      style={{ margin: 0 }}
+      rules={[
+        {
+          required: true,
+          message: `Please input ${title}!`,
+        },
+      ]}
+    >
+      <Input id="number" type="number" min="0" max="10" step="0.5" />
+    </Form.Item>
+  ) : (
+    <div>{value}</div>
+  );
+};
+
+const columnsTemp = [
+  {
+    title: "STT",
+    dataIndex: "STT",
+    width: "4%",
+    align: "center",
+    editable: false,
+  },
+  {
+    title: "Ma Sinh Vien",
+    dataIndex: "MaSinhVien",
+    width: "6%",
+    editable: false,
+    render: (_, prop) => {
+      return (
+        <Form.Item name={"MaSinhVien"} style={{ margin: 0 }}>
+          {prop.MaSinhVien}
+        </Form.Item>
+      );
+    },
+  },
+  {
+    title: "Ho Va Ten",
+    dataIndex: "HoVaTen",
+    width: "10%",
+    editable: true,
+  },
+  {
+    title: "Ten Khoa",
+    dataIndex: "TenKhoa",
+    width: "10%",
+    editable: true,
+  },
+];
 
 const Transcript = () => {
   const [dataSource, setDataSource] = useState([]);
-  const [columns, setColumns] = useState([
-    { title: 'STT', dataIndex: 'STT', width: '5%', editable: false, sorter: (a, b) => a.STT - b.STT },
-    { title: 'MaSinhVien', dataIndex: 'MaSinhVien', width: 'auto', editable: true },
-    { title: 'HoVaTen', dataIndex: 'HoVaTen', width: 'auto', editable: true },
-    { title: 'TenKhoa', dataIndex: 'TenKhoa', width: 'auto', editable: true },
-    { title: 'Email', dataIndex: 'Email', width: 'auto', editable: true },
-    {
-      title: 'Operation',
-      fixed: 'right',
-      width: 100,
-      dataIndex: 'operation',
-      render: (_, record) => {
-        const editable = record.MaSinhVien === editingKey;
-        return editable ? (
-          <span>
-            <Button onClick={() => handleSave(record.MaSinhVien)} style={{ marginRight: 8 }}>Save</Button>
-            <Popconfirm title="Sure to cancel?" onConfirm={handleCancel}>
-              <Button>Cancel</Button>
-            </Popconfirm>
-          </span>
-        ) : (
-          <span>
-            <Button onClick={() => handleEdit(record.MaSinhVien)}>Edit</Button>
-            <Popconfirm title="Sure to delete?" onConfirm={() => handleDelete(record.MaSinhVien)}>
-              <Button>Delete</Button>
-            </Popconfirm>
-          </span>
-        );
+  const [columns, setColumns] = useState(columnsTemp);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [isRenameModalVisible, setIsRenameModalVisible] = useState(false);
+  const [selectedColumnIndex, setSelectedColumnIndex] = useState();
+  const [isSummary, setIsSummary] = useState(false);
+  const [formular, setFormular] = useState("");
+  const [newColumnName, setNewColumnName] = useState("");
+  const [oldColumnName, setOldColumnName] = useState("");
+  const [editingKey, setEditingKey] = useState("");
+  const [form] = Form.useForm();
+  const [csv, setCSV] = useState([]);
+  const [isCheckboxChecked, setIsCheckboxChecked] = useState(false);
+
+  const { maLopHoc } = useMaLopHoc();
+  const { data: students } = useGetStudents(maLopHoc);
+  const { data: scores, refetch } = useGetScore(maLopHoc);
+  const { mutate: updateScore } = useUpdateScore(maLopHoc);
+  const { mutate: renameColumn } = useRenameColumn();
+  const { mutate: deleteColumn } = useDeleteColumn();
+  const { mutate: updateFormula } = useUpdateFormula();
+
+  const isEditing = (record) => record.key === editingKey;
+
+  const edit = (key) => {
+    setEditingKey(key);
+    form.setFieldsValue({
+      ...dataSource.find((item) => item.key === key),
+    });
+  };
+
+  const cancel = () => {
+    setEditingKey("");
+  };
+
+  const handleCheckboxChange = (e) => {
+    setIsCheckboxChecked(e.target.checked);
+    if (!e.target.checked) {
+      setFormular("(CK+TH+TK1+TH1)/5"); // Set to default formular
+    }
+  };
+
+  const handleSave = (data) => {
+    let arr = Object.entries(data);
+    const [_, msv] = arr[0];
+    arr = arr.slice(1, arr.length);
+    const sc = arr.map(([key, value]) => {
+      return {
+        MaSinhVien: msv,
+        TenThanhPhanDiem: key,
+        Diem: value,
+      };
+    });
+    updateScore(
+      {
+        MaLopHoc: maLopHoc,
+        scores: sc,
+      },
+      {
+        onSuccess: () => {
+          refetch();
+          setEditingKey("");
+        },
+        onError: () => {
+          refetch();
+          setEditingKey("");
+        },
       }
-    }
-  ]);
-  const [editingKey, setEditingKey] = useState('');
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [modalContent, setModalContent] = useState('');
-  const [selectedColumns, setSelectedColumns] = useState([]);
-  const [newColumnName, setNewColumnName] = useState('');
-  const [fileList, setFileList] = useState([]);
-  const formRef = useRef(null);
+    );
+  };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      message.error('No token found. Please log in.');
-      return;
-    }
-
-    try {
-      const { data } = await axios.get('http://127.0.0.1:8000/student/GetDanhSachSinhVien/', {
-        headers: { Authorization: 'Token ${token}' }
-      });
-      setDataSource(data.class_students.map((item, index) => ({ ...item, STT: index + 1 })));
-    } catch (error) {
-      if (error.response && error.response.status === 401) {
-        message.error('Unauthorized. Please log in again.');
-      } else {
-        message.error('Error fetching data from server');
+  const handleDeleteColumn = () => {
+    deleteColumn(
+      {
+        MaLopHoc: maLopHoc,
+        column_name: oldColumnName,
+      },
+      {
+        onSuccess: () => {
+          refetch();
+          setIsRenameModalVisible(false);
+          setOldColumnName("");
+          setNewColumnName("");
+        },
       }
-    }
-  };
-
-  const handleEdit = (MaSinhVien) => {
-    setEditingKey(MaSinhVien);
-  };
-
-  const handleCancel = () => {
-    setEditingKey('');
-  };
-
-  const handleDelete = async (MaSinhVien) => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      message.error('No token found. Please log in.');
-      return;
-    }
-
-    try {
-      await axios.post('http://127.0.0.1:8000/student/RemoveSinhVien/', { MaSinhVien }, {
-        headers: { Authorization: `Token ${token}` }
-      });
-      message.success('Student successfully deleted.');
-      fetchData();
-    } catch (error) {
-      message.error('Failed to delete student');
-    }
-  };
-
-  const handleSave = async (MaSinhVien) => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      message.error('No token found. Please log in.');
-      return;
-    }
-
-    try {
-      const row = await formRef.current.validateFields();
-      await axios.post('http://127.0.0.1:8000/student/UpdateSinhVien/', { MaSinhVien, ...row }, {
-        headers: { Authorization: `Token ${token}` }
-      });
-      message.success('Student successfully updated.');
-      fetchData();
-      setEditingKey('');
-    } catch (error) {
-      message.error('Failed to save student');
-    }
+    );
   };
 
   const handleAddColumn = () => {
-    const newColumnIndex = columns.length - 1;
     const newColumn = {
-      title: `New Column ${newColumnIndex}`,
-      dataIndex: `newColumn${newColumnIndex}`,
+      title: `Column ${columns.length + 1}`,
+      dataIndex: `column${columns.length + 1}`,
+      width: "10%",
       editable: true,
-      render: text => <Input defaultValue={text} />
     };
-    setColumns([...columns.slice(0, -1), newColumn, columns[columns.length - 1]]);
+    setColumns([
+      ...columns.slice(0, columns.length - 2),
+      newColumn,
+      ...columns.slice(columns.length - 2),
+    ]);
   };
 
-  const showModal = (action) => {
-    setModalContent(action);
-    setIsModalVisible(true);
-  };
-
-  const handleModalOk = () => {
-    if (modalContent === 'deleteColumn') {
-      const newColumns = columns.filter((col) => !selectedColumns.includes(col.dataIndex));
-      setColumns([...newColumns, columns[columns.length - 1]]);
-    } else if (modalContent === 'renameColumn') {
-      const newColumns = columns.map((col) => {
-        if (col.dataIndex === selectedColumns[0]) {
-          return { ...col, title: newColumnName };
+  const handleRenameColumn = () => {
+    if (isSummary) {
+      updateFormula(
+        {
+          MaLopHoc: maLopHoc,
+          formular: formular,
+          use_default: isCheckboxChecked ? "True" : "False",
+        },
+        {
+          onSuccess: () => {
+            refetch();
+            setIsSummary(false);
+            setIsRenameModalVisible(false);
+          },
+          onError: () => {
+            refetch();
+            setIsSummary(false);
+            setIsRenameModalVisible(false);
+          },
         }
-        return col;
-      });
-      setColumns([...newColumns.slice(0, -1), columns[columns.length - 1]]);
+      );
+    } else {
+      renameColumn(
+        {
+          MaLopHoc: maLopHoc,
+          old_column_name: oldColumnName,
+          new_column_name: newColumnName,
+        },
+        {
+          onSuccess: () => {
+            refetch();
+            setIsRenameModalVisible(false);
+            setOldColumnName("");
+            setNewColumnName("");
+          },
+        }
+      );
     }
-    setIsModalVisible(false);
-    setSelectedColumns([]);
-    setNewColumnName('');
   };
 
-  const handleUpload = async ({ file }) => {
-    const formData = new FormData();
-    formData.append('file', file);
+  const showRenameModal = (index) => {
+    setSelectedColumnIndex(index);
+    setIsRenameModalVisible(true);
+  };
 
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      message.error('No token found. Please log in.');
-      return;
-    }
+  const handleCancel = () => {
+    setOldColumnName("");
+    setNewColumnName("");
+    setIsSummary(false);
+    setIsDeleteModalVisible(false);
+    setIsRenameModalVisible(false);
+  };
 
-    try {
-      const response = await axios.post('http://127.0.0.1:8000/student/AddSinhVienByFile/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Token ${token}`
+  const mergedColumns = columns.map((col, index) => ({
+    ...col,
+    onCell: (record) => ({
+      record,
+      editable: col.editable,
+      dataIndex: col.dataIndex,
+      title: col.title,
+      handleSave: handleSave,
+    }),
+    onHeaderCell: () => ({
+      onDoubleClick: () => {
+        if (col.title === scores?.TongKet?.TenCot) {
+          setIsSummary(true);
+        } else {
+          setOldColumnName(col.title);
         }
-      });
-      message.success(`${file.name} file uploaded successfully`);
-      console.log('Response data:', response.data); // Log the response data
-      setDataSource(response.data.class_students.map((item, index) => ({ ...item, STT: index + 1 })));
-    } catch (error) {
-      if (error.response && error.response.status === 401) {
-        message.error('Unauthorized. Please log in again.');
+        showRenameModal(index);
+      },
+    }),
+  }));
+
+  const getCSVFile = () => {
+    const data = dataSource.map((d, index) => {
+      if (scores) {
+        return [
+          d.MaSinhVien,
+          ...Object.values(scores.student_scores[index]?.Scores ?? { a: 0, b: 0 }).map((a) => a),
+          scores.TongKet.Scores[index].Final_score ?? 0,
+        ];
       } else {
-        message.error(`${file.name} file upload failed`);
+        return [d.MaSinhVien];
       }
+    });
+    if (scores) {
+      return [["MaSinhVien", ...Object.keys(scores.score_columns), "TK"], ...data];
+    }
+    return [];
+  };
+
+  const handleUpload = async (e) => {
+    const file = e.target.files[0];
+    try {
+      await uploadScore(file, maLopHoc);
+      refetch();
+    } catch (error) {
+      console.log(error);
+    } finally {
+      e.target.value = null;
     }
   };
+
+  useEffect(() => {
+    if (students && scores) {
+      setFormular(scores.TongKet.Formula);
+      setColumns([
+        ...columnsTemp,
+        ...Object.keys(scores.score_columns).map((key) => {
+          return {
+            title: key,
+            dataIndex: key,
+            width: "20%",
+            editable: true,
+            render: (_, record) => {
+              const editable = isEditing(record);
+              return editable ? (
+                <EditableCell
+                  title={key}
+                  value={record[key] ?? 0}
+                  dataIndex={key}
+                  editing={editable}
+                />
+              ) : (
+                <div>{record[key] ?? 0}</div>
+              );
+            },
+          };
+        }),
+        {
+          title: scores.TongKet.TenCot,
+          dataIndex: "Final_score",
+          width: "10%",
+          editable: false,
+        },
+        {
+          title: "Action",
+          dataIndex: "action",
+          render: (_, record) => {
+            const editable = isEditing(record);
+            return editable ? (
+              <span style={{ display: "flex", gap: "10px" }}>
+                <Form.Item style={{ margin: 0 }}>
+                  <Button type="primary" htmlType="submit">
+                    Save
+                  </Button>
+                </Form.Item>
+                <Button onClick={cancel}>Cancel</Button>
+              </span>
+            ) : (
+              <span style={{ display: "flex", gap: "10px" }}>
+                <Button onClick={() => edit(record.key)}>Edit</Button>
+              </span>
+            );
+          },
+        },
+      ]);
+      setDataSource(
+        students.class_students.map((student, index) => ({
+          key: index.toString(),
+          STT: (index + 1).toString(),
+          MaSinhVien: student.MaSinhVien,
+          HoVaTen: student.HoVaTen,
+          TenKhoa: student.TenKhoa,
+          Email: student.Email,
+          ...scores.student_scores[index].Scores,
+          Final_score: scores.TongKet.Scores[index].Final_score,
+        }))
+      );
+    }
+  }, [students, scores, editingKey]);
+
+  useEffect(() => {
+    const data = getCSVFile();
+    setCSV(data);
+  }, [dataSource]);
 
   return (
     <div>
-      <h1 style={{ textAlign: "center" }}>Transcript</h1>
-      <Button type='primary' onClick={handleAddColumn} style={{ marginBottom: 16, marginLeft: "20px" }}>Add Column</Button>
-      <Button type='primary' onClick={() => showModal('deleteColumn')} style={{ marginBottom: 16, marginLeft: "20px" }}>Delete Column</Button>
-      <Button type='primary' onClick={() => showModal('renameColumn')} style={{ marginBottom: 16, marginLeft: "20px" }}>Rename Column</Button>
-      <Upload customRequest={handleUpload} beforeUpload={() => false} accept=".csv, .xml">
-        <Button type='primary' icon={<UploadOutlined />} style={{ marginBottom: 16, marginLeft: "20px" }}>Upload CSV</Button>
-      </Upload>
-      <Modal title={`${modalContent} Column`} visible={isModalVisible} onOk={handleModalOk} onCancel={() => setIsModalVisible(false)}>
-        {modalContent === 'deleteColumn' && <Select mode="multiple" style={{ width: '100%' }} onChange={setSelectedColumns}>{columns.map(col => <Option key={col.dataIndex}>{col.title}</Option>)}</Select>}
-        {modalContent === 'renameColumn' && (
+      <h1 style={{ textAlign: "center", margin: "20px 0" }}>Transcript</h1>
+      <Button
+        onClick={handleAddColumn}
+        type="primary"
+        style={{ marginBottom: 16, marginLeft: "20px" }}
+      >
+        Add a column
+      </Button>
+      <Modal
+        title="Delete a Column"
+        visible={isDeleteModalVisible}
+        onOk={handleDeleteColumn}
+        onCancel={handleCancel}
+      >
+        <Select
+          style={{ width: 120 }}
+          onChange={setSelectedColumnIndex}
+          placeholder="Select a column"
+        >
+          {columns.map((col, index) => (
+            <Select.Option key={index} value={index}>
+              {col.title}
+            </Select.Option>
+          ))}
+        </Select>
+      </Modal>
+      <Button
+        type="primary"
+        style={{ marginBottom: 16, marginLeft: "20px" }}
+      >
+        <label htmlFor={"fileSelect"}>Upload</label>
+        <input
+          onChange={handleUpload}
+          hidden
+          id="fileSelect"
+          type="file"
+          accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+        />
+      </Button>
+      <Button type="primary" style={{ marginBottom: 16, marginLeft: "20px" }}>
+        <CSVLink target="_blank" filename={"transcript.csv"} data={csv}>
+          {" "}
+          Download
+        </CSVLink>
+      </Button>
+      <Modal
+        title="Column Action"
+        visible={isRenameModalVisible}
+        onOk={handleRenameColumn}
+        onCancel={handleCancel}
+      >
+        <Input
+          placeholder={isSummary ? "Formular" : "New column name"}
+          value={isSummary ? formular : newColumnName}
+          onChange={(e) => {
+            if (isSummary) {
+              setFormular(e.target.value);
+            } else {
+              setNewColumnName(e.target.value);
+            }
+          }}
+        />
+        {isSummary && (
+          <Checkbox checked={isCheckboxChecked} onChange={handleCheckboxChange}>
+            Use default formula
+          </Checkbox>
+        )}
+        {!isSummary && (
           <>
-            <Select style={{ width: '100%' }} onChange={setSelectedColumns}>{columns.map(col => <Option key={col.dataIndex}>{col.title}</Option>)}</Select>
-            <Input style={{ marginTop: '5%' }} placeholder="New column name" value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} />
+            <p style={{ margin: "10px 0" }}>Or</p>
+            <Button onClick={handleDeleteColumn}>Delete column</Button>
           </>
         )}
       </Modal>
-      <Table
-        dataSource={dataSource}
-        columns={columns}
-        rowKey="MaSinhVien"
-        pagination={false}
-        style={{ marginLeft: "20px", marginRight: "250px", width: "auto" }}
-        scroll={{ x: 1000, y: 450 }} />
+      <Form
+        form={form}
+        onFinish={(data) => {
+          handleSave(data);
+        }}
+      >
+        <Table
+          rowClassName={() => "editable-row"}
+          bordered
+          dataSource={dataSource}
+          columns={mergedColumns}
+          style={{ marginLeft: "20px", marginRight: "20px" }}
+          pagination={false}
+        />
+      </Form>
     </div>
   );
 };

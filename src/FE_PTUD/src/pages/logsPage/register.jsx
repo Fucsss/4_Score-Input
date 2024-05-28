@@ -50,6 +50,10 @@ function Register() {
     }
     if (!password) {
       errors.password = "Please enter a password.";
+    } else if (password.length < 8) {
+      errors.password = "Password must be at least 8 characters long.";
+    } else if (!/^[A-Z]/.test(password)) {
+      errors.password = "Password must start with a capital letter [A-Z]";
     }
     if (confirmPassword !== password) {
       errors.confirmPassword = "Passwords do not match.";
