@@ -34,6 +34,7 @@ Hướng dẫn cài đặt và chạy sau khi pull project từ github về (Lư
     - Upload điểm bằng File
     - Upload sinh viên bằng file
     - Download file
+    - Thực hiện Docker để xây một ứng dụng đa container 
       
 - Lê Nguyên Sinh:
     - Dasboard
